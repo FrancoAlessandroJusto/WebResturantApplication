@@ -1,0 +1,164 @@
+\chapter{Analisi comparativa dei prompt nella progettazione assistita da AI}
+
+Per valutare concretamente l’efficacia degli strumenti basati su modelli linguistici nella fase iniziale di progettazione del software, è stato condotto un semplice esperimento basato sulla formulazione di prompt con diversi livelli di dettaglio. L’obiettivo era osservare come la qualità delle risposte generate dal modello vari in funzione delle informazioni fornite nel prompt.
+
+\section{Prompt minimale}
+
+
+Per valutare il comportamento degli strumenti di intelligenza artificiale in assenza di istruzioni dettagliate, è stato inizialmente utilizzato un prompt estremamente generico.
+
+\begin{figure}[H]
+\hspace{0.2cm}
+\includegraphics[width=1.0\textwidth]{IMM/PromptSintetico.jpg}
+\caption{Prompt minimale utilizzato nel esperimento}
+\end{figure}
+
+Questo prompt è stato sottoposto a diversi sistemi basati su modelli linguistici di grandi dimensioni (LLM), tra cui assistenti integrati in ambienti di sviluppo e sistemi di generazione di codice.
+\\
+Sebbene i risultati ottenuti dai diversi sistemi presentassero variazioni nelle tecnologie utilizzate e nell’organizzazione dei file, è emerso un comportamento comune: tutti i modelli tendevano a prendere decisioni autonome ma con profondi errori strutturali.
+\\
+Per l’analisi dettagliata riportata in questa sezione è stato scelto come caso di studio il modello SWE-1.5, integrato nell’ambiente di sviluppo Windsurf. Questo sistema è stato selezionato perché la struttura di progetto generata rende particolarmente evidente l’insieme di problemi tipici derivanti dall’utilizzo di prompt troppo generici.
+\\
+L’analisi del codice generato evidenzia diversi problemi strutturali che emergono quando un modello linguistico tenta di costruire autonomamente una codebase complessa a partire da istruzioni estremamente generiche. A partire da un input molto breve, il modello ha generato automaticamente una codebase di dimensioni rilevanti, composta da 35 file e circa 3631 righe di codice ma nonostante l’apparente completezza del codice e della struttura, il programma si è rivelato fallimentare dal punto di vista strutturale e funzionale.
+\\
+Una prima categoria di criticità riguarda l’incoerenza tra le tecnologie utilizzate e le strutture dati generate dal modello. In diversi punti del progetto il codice assumeva la disponibilità di costrutti o convenzioni non pienamente compatibili con il sistema di persistenza effettivamente utilizzato. Questo tipo di errore indica che il modello ha generato il codice sulla base di schemi generici appresi durante l’addestramento, senza una reale integrazione tra le scelte tecnologiche adottate nel progetto.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{IMM/Errore1.png}
+\caption{Esempio di incompatibilità tra struttura dei dati e sistema di persistenza}
+\end{figure}
+
+Una seconda categoria di problemi riguarda la gestione dell’inizializzazione del sistema e delle dipendenze tra le diverse componenti dell’applicazione. In più punti il codice tentava di eseguire operazioni su strutture non ancora disponibili oppure di creare relazioni tra entità non ancora definite. In sistemi che prevedono database relazionali e inizializzazione asincrona delle risorse, la corretta sequenza delle operazioni rappresenta un requisito fondamentale per la stabilità del sistema.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{IMM/Errore2.png}
+\caption{Esempio di errore logico dovuto alla gestione non corretta delle dipendenze tra componenti}
+\end{figure}
+
+Anche dopo la correzione manuale di questi problemi iniziali, il progetto continuava a presentare numerosi difetti strutturali. Il codice risultava caratterizzato da funzioni duplicate, componenti ridondanti e una struttura interna poco coerente. Questo suggerisce che il modello aveva generato una grande quantità di codice senza una reale comprensione dello scope del sistema da realizzare.
+\\
+Dal punto di vista dell’interfaccia utente, il risultato era altrettanto limitato.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{IMM/Webminimale.png}
+\caption{Interfaccia generata automaticamente dal modello}
+\end{figure}
+
+Sebbene l’applicazione apparisse inizialmente funzionante, ogni tentativo di interazione con l’interfaccia produceva comportamenti inattesi oppure errori di esecuzione. Questo indica che il problema non era solamente legato alla qualità estetica dell’interfaccia, ma alla stabilità complessiva del sistema generato.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{Franco/IMM/Errormap.png}
+\caption{Esempio di errore di runtime generato dall’applicazione}
+\end{figure}
+
+\section{Analisi codici generati da un prompt minimale}
+Nel complesso, questo primo esperimento evidenzia un aspetto centrale dell’utilizzo dei modelli linguistici nello sviluppo software: in assenza di vincoli progettuali sufficientemente espliciti, il modello tende a generare soluzioni estese ma fragili, introducendo autonomamente decisioni architetturali non richieste e spesso non adatte al contesto applicativo.
+\\
+Il modello linguistico può quindi produrre rapidamente grandi quantità di codice anche partendo da istruzioni minime; tuttavia questa apparente produttività non coincide necessariamente con una reale efficacia progettuale. In mancanza di una guida precisa, l’AI rischia infatti di aumentare il carico di revisione dello sviluppatore, che si trova costretto a correggere errori strutturali, incoerenze architetturali e bug funzionali distribuiti lungo tutta la codebase.
+\\
+Questo comportamento non deve tuttavia essere interpretato esclusivamente come un limite della tecnologia. L'esperimento mostra infatti che, in presenza di specifiche incomplete, il modello tende a generare autonomamente ipotesi progettuali per colmare le informazioni mancanti. Le soluzioni prodotte risultano spesso plausibili dal punto di vista formale, ma non necessariamente coerenti sul piano architetturale.
+\\
+Questa proprietà rappresenta allo stesso tempo un limite e un'opportunità. Da un lato può introdurre errori strutturali quando il contesto applicativo non è definito in modo sufficientemente preciso; dall'altro consente di ottenere rapidamente una prima struttura di soluzione che può essere successivamente raffinata e corretta dallo sviluppatore.
+\\
+Per ridurre questo tipo di ambiguità è necessario adottare metodologie più strutturate nella definizione delle richieste rivolte ai modelli linguistici. In questo contesto assume particolare rilevanza il concetto di \textit{Prompt Engineering}, inteso come la progettazione sistematica dei prompt con l'obiettivo di guidare il comportamento del modello e ottenere risultati maggiormente controllabili e coerenti dal punto di vista ingegneristico.
+\\
+Nel seguito verrà quindi analizzato come la riformulazione del prompt mediante tecniche di Prompt Engineering consenta di mitigare i problemi osservati in questa prima fase sperimentale e di migliorare la qualità delle soluzioni generate.
+
+\section{Utilizzo del Prompt Engineering per la progettazione iniziale del sistema}
+
+A seguito dei risultati ottenuti con il prompt minimale, è stato introdotto un prompt più strutturato con l'obiettivo di guidare in maniera più precisa il comportamento del modello linguistico. Questa tecnica prende il nome di \textit{Prompt Engineering} ed è definita come il processo di progettazione e ottimizzazione degli input testuali forniti ai modelli linguistici al fine di ottenere risposte più accurate, controllabili e coerenti con l'obiettivo del task \cite{Sahoo2024PromptSurvey}.
+\\
+Diversi studi evidenziano infatti che la qualità dell'output generato dai Large Language Models (LLM) dipende in maniera significativa dalla struttura e dalla specificità del prompt utilizzato. In particolare, fornire contesto esplicito, vincoli progettuali e una chiara definizione del formato di output riduce l'ambiguità e migliora la qualità delle soluzioni generate \cite{White2023PromptPatterns}.
+\\
+Nel contesto di questo lavoro, il prompt utilizzato è stato progettato suddividendo le informazioni in diverse sezioni logiche:
+
+\begin{itemize}definizione del task
+\item contesto applicativo
+\item richiesta progettuale
+\item requisiti tecnici
+\item vincoli di progettazione
+\item elementi da evitare (negative prompt)
+\item formato dell'output richiesto
+\end{itemize}
+\\
+Questo approccio segue delle raccomandazioni secondo cui i modelli linguistici tendono a produrre risultati più coerenti quando il problema viene esplicitamente decomposto in sotto-componenti verificabili \cite{Midolo2026CodeGuidelines}.
+\\
+\subsubsection{prompt utilizzato per generare la struttura iniziale dell'applicazione}
+\\
+Task: Progettare la struttura iniziale di un'applicazione web per la gestione
+di un ristorante, preparando documenti di testo txt e markdown.
+\\
+Context:
+L'applicazione è commissionata dal proprietario di una pizzeria.
+\\
+Il sistema deve permettere:
+presa ordini da parte dei camerieri, gestione tavoli, gestione menu, analisi economica del ristorante
+\\
+Utenti previsti: cameriere, manager, proprietario
+\\
+Request:
+Proporre una struttura architetturale iniziale dell'applicazione includendo: struttura del progetto, componenti principali del sistema, schema del database, principali API, flusso dei dati tra interfaccia, backend e database
+\\
+Technical Requirements:
+web application accessibile tramite browser, backend realizzato con Python FastAPI,separazione tra frontend e backend, utilizzo di database, gestione dinamica del menu, tracciamento storico degli ordini, supporto ad analisi economiche
+\\
+Constraints:
+Sistema destinato a ristorante di piccole dimensioni.
+Non è necessario progettare infrastruttura distribuita o cloud.
+\\
+Negative Prompt:
+evitare architetture enterprise complesse, evitare microservizi, evitare menu hard-coded, evitare soluzioni senza database
+\\
+Rispetto all'esperimento precedente, il modello non ha prodotto direttamente grandi quantità di codice applicativo, ma ha generato una serie di documenti di progettazione che descrivono l'architettura del sistema, la struttura del progetto, lo schema preliminare del database e i principali moduli applicativi.
+
+\section{Analisi dei documenti di progettazione generati}
+
+L'esecuzione del prompt strutturato ha portato alla generazione di una serie di documenti di progettazione che descrivono in maniera preliminare l'architettura del sistema, il flusso dei dati tra i componenti applicativi, lo schema del database e la struttura organizzativa del progetto.
+\\
+A differenza del caso precedente, in cui il modello tendeva a generare direttamente porzioni di codice difficilmente verificabili, l'output prodotto in questa fase assume la forma di una documentazione architetturale preliminare. Questa modalità di generazione risulta particolarmente utile nel contesto della progettazione software, poiché consente allo sviluppatore di analizzare e validare le scelte strutturali prima di procedere con l'implementazione effettiva del sistema.
+
+\subsubsection{Architettura del sistema}
+
+Il documento relativo all'architettura del sistema descrive un'architettura applicativa a tre livelli composta da interfaccia utente, backend applicativo e database. In particolare, il modello propone un'architettura client--server nella quale il frontend è costituito da una interfaccia web accessibile tramite browser, mentre il backend espone una serie di API REST realizzate tramite il framework FastAPI.
+
+Il database proposto è di tipo relazionale e viene inizialmente implementato tramite SQLite, con la possibilità di migrare successivamente verso soluzioni più scalabili come PostgreSQL. L'architettura suggerita include inoltre l'utilizzo di un ORM per la gestione delle entità persistenti e di meccanismi di autenticazione basati su token.
+
+Il sistema prevede tre tipologie principali di utenti: camerieri, manager e proprietario, ciascuno dotato di differenti livelli di accesso alle funzionalità applicative. Questa suddivisione introduce un modello di controllo degli accessi basato su ruoli (Role-Based Access Control), frequentemente utilizzato nelle applicazioni gestionali.
+
+\subsubsection{Flusso dei dati}
+
+Il documento relativo al flusso dei dati descrive il ciclo di vita delle principali operazioni del sistema. In particolare, viene rappresentato il percorso seguito dalle richieste dell'utente dal momento in cui vengono generate nel frontend fino alla loro elaborazione nel backend e alla successiva persistenza nel database.
+
+Il modello descrive un flusso dati tipico nel quale il browser invia richieste HTTP al backend tramite API REST, il backend esegue la logica applicativa e interagisce con il database per la lettura o la scrittura dei dati, e infine restituisce una risposta al client. In alcune operazioni, come la creazione di nuovi ordini o l'aggiornamento dello stato dei tavoli, viene inoltre suggerito l'utilizzo di comunicazioni real-time tramite WebSocket per sincronizzare le interfacce dei diversi operatori del ristorante.
+
+\subsubsection{Schema del database}
+
+Un ulteriore documento generato dal modello riguarda la definizione preliminare dello schema del database. Lo schema proposto include diverse tabelle che rappresentano le principali entità del dominio applicativo del ristorante, tra cui utenti, tavoli, categorie del menu, prodotti del menu, ordini e pagamenti.
+
+Le relazioni tra queste entità sono modellate tramite chiavi esterne che consentono di rappresentare i legami logici tra gli elementi del sistema. Ad esempio, ogni ordine è associato a un tavolo e a un cameriere, mentre i singoli prodotti ordinati sono rappresentati tramite una tabella di dettaglio collegata sia all'ordine sia agli elementi del menu.
+
+Questo schema segue una struttura relazionale normalizzata che permette di evitare ridondanze nei dati e facilita la realizzazione di interrogazioni analitiche relative all'andamento economico del ristorante.
+
+\subsubsection{Moduli applicativi e API}
+
+Il modello propone inoltre una suddivisione modulare del backend in diversi componenti funzionali. Tra i moduli principali individuati vi sono il modulo di autenticazione, il modulo di gestione utenti, il modulo di gestione dei tavoli, il modulo di gestione del menu, il modulo di gestione degli ordini e un modulo dedicato all'analisi dei dati.
+
+Ciascun modulo espone un insieme di endpoint API dedicati alle operazioni di lettura, creazione, aggiornamento e cancellazione delle entità del sistema. Questa organizzazione favorisce una separazione chiara tra le diverse responsabilità applicative e rende il codice più facilmente manutenibile e scalabile.
+
+\subsubsection{Struttura del progetto}
+
+Infine, il modello genera anche una proposta di struttura organizzativa del progetto software. La struttura suggerita prevede una separazione tra backend e frontend, con una suddivisione interna del backend in moduli dedicati ai modelli dati, agli schemi di validazione, alle route API e alla logica applicativa.
+\\
+L'analisi complessiva dei documenti generati mostra come il modello sia in grado di produrre una struttura progettuale coerente con i requisiti espressi nel prompt. In particolare, l'architettura proposta rispetta i principali vincoli tecnici specificati, come l'utilizzo di FastAPI per il backend e la separazione tra interfaccia utente, logica applicativa e database.
+\\
+Tuttavia, durante la fase di implementazione pratica del sistema sono emerse alcune criticità. In particolare, il modello tendeva frequentemente a proporre soluzioni architetturali più complesse rispetto ai requisiti effettivamente necessari, introducendo componenti o configurazioni aggiuntive non richieste dal prompt. Questo comportamento porta spesso ad un aumento dello scope del progetto e a forme di overengineering, nelle quali vengono suggerite funzionalità o strutture pensate per applicazioni più complesse rispetto al caso di studio considerato.
+\\
+Questo fenomeno è coerente con quanto osservato nella letteratura sui Large Language Models applicati allo sviluppo software: in presenza di specifiche parziali o non completamente vincolate, il modello tende a completare il progetto facendo riferimento a pattern architetturali comuni o a soluzioni considerate best practice.
+\\
+L'analisi dei documenti prodotti mostra una discreta coerenza con i requisiti espressi nel prompt. Il modello propone infatti un'architettura a tre livelli composta da interfaccia utente, backend applicativo e database, oltre a identificare le principali entità del dominio applicativo del ristorante, come ordini, tavoli, prodotti del menu e utenti.
+\\
+Questo esperimento conferma quindi un aspetto fondamentale dell'utilizzo dei LLM nello sviluppo software: la qualità dell'output non dipende esclusivamente dalle capacità del modello, ma in larga misura dalla qualità e dalla struttura del prompt utilizzato per guidarne il comportamento.

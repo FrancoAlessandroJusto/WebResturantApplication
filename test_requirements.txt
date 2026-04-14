@@ -1,0 +1,10 @@
+# =========================
+# REQUIREMENTS PER I TEST
+# =========================
+
+# Installa le dipendenze necessarie
+fastapi>=0.68.0
+uvicorn>=0.15.0
+pytest>=6.0.0
+python-multipart
+jinja2>=3.0.0

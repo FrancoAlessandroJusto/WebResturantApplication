@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}PizzaAdmin - Statistiche Vendite{% endblock %}
+{% block page_title %}Statistiche Vendite{% endblock %}
+
+{% block sidebar %}
+<h3 class="text-sm font-semibold text-[#666] dark:text-[#a09080] mb-4">ANALYTICS</h3>
+<ul class="space-y-2">
+  <li>
+    <a href="#" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white">
+      <span class="material-symbols-outlined">bar_chart</span>
+      <span>Riepilogo Vendite</span>
+    </a>
+  </li>
+  <li>
+    <a href="#" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white">
+      <span class="material-symbols-outlined">trending_up</span>
+      <span>Performance</span>
+    </a>
+  </li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center gap-4 mb-6">
+    <h3 class="text-lg font-semibold text-[#181311] dark:text-white">Periodo Analisi</h3>
+    <div class="flex gap-2">
+      <button class="period-btn px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium" data-period="today">Oggi</button>
+      <button class="period-btn px-4 py-2 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm font-medium" data-period="week">Settimana</button>
+      <button class="period-btn px-4 py-2 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm font-medium" data-period="month">Mese</button>
+      <button class="period-btn px-4 py-2 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm font-medium" data-period="year">Anno</button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-[#666] dark:text-[#a09080]">Ricavo Totale</p>
+          <p id="revenue-total" class="text-2xl font-bold text-[#181311] dark:text-white">€0.00</p>
+        </div>
+        <div class="size-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-green-600 dark:text-green-400">euro</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-[#666] dark:text-[#a09080]">Costo Produzione</p>
+          <p id="cost-total" class="text-2xl font-bold text-[#181311] dark:text-white">€0.00</p>
+        </div>
+        <div class="size-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-red-600 dark:text-red-400">trending_down</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-[#666] dark:text-[#a09080]">Profitto Netto</p>
+          <p id="profit-total" class="text-2xl font-bold text-[#181311] dark:text-white">€0.00</p>
+        </div>
+        <div class="size-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">trending_up</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-[#666] dark:text-[#a09080]">Ordini Totali</p>
+          <p id="orders-total" class="text-2xl font-bold text-[#181311] dark:text-white">0</p>
+        </div>
+        <div class="size-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">receipt_long</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Metodi di Pagamento</h3>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-500">credit_card</span>
+            <span class="text-sm text-[#181311] dark:text-white">Carta</span>
+          </div>
+          <div class="text-right">
+            <p id="card-amount" class="font-semibold text-[#181311] dark:text-white">€0.00</p>
+            <p id="card-percentage" class="text-xs text-[#666] dark:text-[#a09080]">0%</p>
+          </div>
+        </div>
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-500">payments</span>
+            <span class="text-sm text-[#181311] dark:text-white">Contanti</span>
+          </div>
+          <div class="text-right">
+            <p id="cash-amount" class="font-semibold text-[#181311] dark:text-white">€0.00</p>
+            <p id="cash-percentage" class="text-xs text-[#666] dark:text-[#a09080]">0%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Performance</h3>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-[#181311] dark:text-white">Margine Medio</span>
+          <p id="margin-average" class="font-semibold text-[#181311] dark:text-white">0%</p>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-[#181311] dark:text-white">Ordine Medio</span>
+          <p id="order-average" class="font-semibold text-[#181311] dark:text-white">€0.00</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingredients Analytics -->
+  <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white">Analisi Consumi Ingredienti</h3>
+      <div class="flex items-center gap-2">
+        <!-- Filtro per nome -->
+        <input 
+          type="text" 
+          id="ingredient-search" 
+          placeholder="Cerca ingrediente..." 
+          class="px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg text-sm text-[#181311] dark:text-white bg-white dark:bg-[#3d2a22] focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+        
+        <!-- Ordinamento -->
+        <select 
+          id="ingredient-sort" 
+          class="px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg text-sm text-[#181311] dark:text-white bg-white dark:bg-[#3d2a22] focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="nome">Ordina per Nome</option>
+          <option value="consumo">Ordina per Utilizzo</option>
+          <option value="costo_totale">Ordina per Costo Totale</option>
+          <option value="costo_unitario">Ordina per Costo Unitario</option>
+          <option value="utilizzi">Ordina per Utilizzi</option>
+          <option value="trend">Ordina per Trend Costo</option>
+        </select>
+        
+        <!-- Tipo filtro -->
+        <select 
+          id="ingredient-type-filter" 
+          class="px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg text-sm text-[#181311] dark:text-white bg-white dark:bg-[#3d2a22] focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">Tutti i tipi</option>
+          <option value="base">Base</option>
+          <option value="formaggio">Formaggi</option>
+          <option value="carne">Carne</option>
+          <option value="verdura">Verdure</option>
+          <option value="salsa">Salse</option>
+        </select>
+      </div>
+    </div>
+    <div class="mb-4">
+      <div class="flex items-center gap-4 text-sm text-[#666] dark:text-[#a09080]">
+        <span>Costo Totale: <span id="ingredients-total-cost" class="font-semibold text-[#181311] dark:text-white">€0.00</span></span>
+        <span>Consumo Totale: <span id="ingredients-total-consumption" class="font-semibold text-[#181311] dark:text-white">0</span></span>
+        <span>Ingredienti Utilizzati: <span id="ingredients-count" class="font-semibold text-[#181311] dark:text-white">0</span></span>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-[#e5e5e5] dark:border-[#4a3a30]">
+            <th class="text-left py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Ingrediente</th>
+            <th class="text-left py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Tipo</th>
+            <th class="text-center py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Consumo</th>
+            <th class="text-right py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Costo Totale</th>
+            <th class="text-right py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Costo Unitario</th>
+            <th class="text-center py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Utilizzi</th>
+            <th class="text-right py-2 text-sm font-medium text-[#666] dark:text-[#a09080]">Trend Costo</th>
+          </tr>
+        </thead>
+        <tbody id="ingredients-table-body">
+          <!-- Data will be loaded here -->
+          <tr>
+            <td colspan="8" class="text-center py-8 text-[#666] dark:text-[#a09080]">
+              Caricamento dati ingredienti...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load ingredients analytics
+async function loadIngredientsAnalytics(period) {
+  try {
+    console.log(`Loading ingredients analytics for period: ${period}`);
+    
+    const response = await fetch(`/analytics/ingredients?periodo=${period}`);
+    console.log('Ingredients response status:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`Ingredients API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Ingredients data:', data);
+    
+    // Update summary stats
+    document.getElementById('ingredients-total-cost').textContent = `€${data.total_cost.toFixed(2)}`;
+    document.getElementById('ingredients-total-consumption').textContent = data.total_consumption.toFixed(2);
+    document.getElementById('ingredients-count').textContent = data.ingredient_count;
+    
+    // Update table
+    const tableBody = document.getElementById('ingredients-table-body');
+    tableBody.innerHTML = '';
+    
+    if (data.ingredienti_analytics && data.ingredienti_analytics.length > 0) {
+      data.ingredienti_analytics.forEach((ingredient, index) => {
+        console.log(`Processing ingredient ${index}:`, ingredient);
+        
+        const row = document.createElement('tr');
+        row.className = 'border-b';
+        
+        // Determina colore trend
+        let trendIcon = '→';
+        let trendColor = 'text-gray-500';
+        if (ingredient.cost_trend_percent > 5) {
+          trendIcon = '↑';
+          trendColor = 'text-red-500';
+        } else if (ingredient.cost_trend_percent < -5) {
+          trendIcon = '↓';
+          trendColor = 'text-green-500';
+        }
+        
+        // Determina colore tipo
+        let tipoColor = 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+        if (ingredient.tipo === 'base') tipoColor = 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+        else if (ingredient.tipo === 'salsa') tipoColor = 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+        else if (ingredient.tipo === 'formaggio') tipoColor = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+        else if (ingredient.tipo === 'carne') tipoColor = 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200';
+        else if (ingredient.tipo === 'verdura') tipoColor = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+        
+        row.innerHTML = `
+          <td class="py-2 font-medium">${ingredient.ingrediente}</td>
+          <td class="py-2">
+            <span class="px-2 py-1 text-xs rounded-full ${tipoColor}">
+              ${ingredient.tipo}
+            </span>
+          </td>
+          <td class="text-center py-2">${ingredient.consumo_unitario_display}</td>
+          <td class="text-right py-2">€${ingredient.costo_totale.toFixed(2)}</td>
+          <td class="text-right py-2">€${ingredient.costo_unitario_effettive.toFixed(2)}</td>
+          <td class="text-center py-2">${ingredient.utilizzi_in_ordini}</td>
+          <td class="text-right py-2">
+            <span class="font-medium ${trendColor}">
+              ${trendIcon} ${Math.abs(ingredient.cost_trend_percent).toFixed(1)}%
+            </span>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    } else {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-8 text-[#666] dark:text-[#a09080]">
+            Nessun dato ingredienti disponibile per il periodo selezionato
+          </td>
+        </tr>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading ingredients analytics:', error);
+    document.getElementById('ingredients-table-body').innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-red-500">
+          Errore nel caricamento dati ingredienti: ${error.message}
+        </td>
+      </tr>
+    `;
+  }
+}
+async function loadAnalytics(period) {
+  try {
+    console.log(`Loading analytics for period: ${period}`);
+    
+    // Reset filtri quando cambia periodo
+    document.getElementById('ingredient-search').value = '';
+    document.getElementById('ingredient-sort').value = 'nome';
+    document.getElementById('ingredient-type-filter').value = '';
+    
+    // Carica dati principali e ingredienti in parallelo
+    const [summaryResponse, paymentsResponse, ingredientsResponse] = await Promise.all([
+      fetch(`/analytics/summary?periodo=${period}`),
+      fetch(`/analytics/payments?periodo=${period}`),
+      fetch(`/analytics/ingredients?periodo=${period}`)
+    ]);
+    
+    console.log('Summary response status:', summaryResponse.status);
+    console.log('Payments response status:', paymentsResponse.status);
+    console.log('Ingredients response status:', ingredientsResponse.status);
+    
+    if (!summaryResponse.ok) {
+      throw new Error(`Summary API error: ${summaryResponse.status}`);
+    }
+    
+    const summaryData = await summaryResponse.json();
+    console.log('Summary data:', summaryData);
+    
+    const paymentsData = paymentsResponse.ok ? await paymentsResponse.json() : null;
+    console.log('Payments data:', paymentsData);
+    
+    // Process ingredients data separately
+    if (ingredientsResponse.ok) {
+      const ingredientsData = await ingredientsResponse.json();
+      console.log('Ingredients data:', ingredientsData);
+      
+      // Save to global variable for filtering
+      allIngredientsData = ingredientsData.ingredienti_analytics || [];
+      currentIngredientsData = ingredientsData;
+      
+      // Update ingredients summary
+      document.getElementById('ingredients-total-cost').textContent = `€${ingredientsData.total_cost.toFixed(2)}`;
+      document.getElementById('ingredients-total-consumption').textContent = ingredientsData.total_consumption.toFixed(2);
+      document.getElementById('ingredients-count').textContent = ingredientsData.ingredient_count;
+      
+      // Update ingredients table with filtering (applica ordinamento di default)
+      updateIngredientsTable(allIngredientsData);
+    }
+    
+    // Update summary cards
+    document.getElementById('revenue-total').textContent = `€${summaryData.ricavo_totale.toFixed(2)}`;
+    document.getElementById('cost-total').textContent = `€${summaryData.costo_produzione_totale.toFixed(2)}`;
+    document.getElementById('profit-total').textContent = `€${summaryData.profitto_netto.toFixed(2)}`;
+    document.getElementById('orders-total').textContent = summaryData.numero_ordini;
+    
+    // Update payment stats se disponibili
+    if (paymentsData) {
+      document.getElementById('card-amount').textContent = `€${paymentsData.incasso_carta.toFixed(2)}`;
+      document.getElementById('card-percentage').textContent = `${paymentsData.percentuale_carta.toFixed(1)}%`;
+      document.getElementById('cash-amount').textContent = `€${paymentsData.incasso_contanti.toFixed(2)}`;
+      document.getElementById('cash-percentage').textContent = `${paymentsData.percentuale_contanti.toFixed(1)}%`;
+    }
+    
+    // Update performance stats
+    document.getElementById('margin-average').textContent = `${summaryData.margine_media.toFixed(1)}%`;
+    const orderAverage = summaryData.numero_ordini > 0 ? summaryData.ricavo_totale / summaryData.numero_ordini : 0;
+    document.getElementById('order-average').textContent = `€${orderAverage.toFixed(2)}`;
+    
+    // Update items table
+    const tableBody = document.getElementById('analytics-table-body');
+    tableBody.innerHTML = '';
+    
+    const itemsData = summaryData.items_analytics || [];
+    console.log('Items data length:', itemsData.length);
+    
+    if (itemsData.length > 0) {
+      itemsData.forEach((item, index) => {
+        console.log(`Processing item ${index}:`, item);
+        
+        const row = document.createElement('tr');
+        row.className = 'border-b';
+        row.innerHTML = `
+          <td class="py-2 font-medium">${item.pizza_nome}</td>
+          <td class="text-center py-2">${item.quantita_totale}</td>
+          <td class="text-right py-2">€${item.ricavo_totale.toFixed(2)}</td>
+          <td class="text-right py-2">€${item.prezzo_medio.toFixed(2)}</td>
+          <td class="text-right py-2">${item.numero_ordini}</td>
+          <td class="text-right py-2">
+            <span class="px-2 py-1 text-xs rounded-full ${item.trend_quantita > 0 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : item.trend_quantita < 0 ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' : 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200'}">
+              ${item.trend_quantita > 0 ? '↑' : item.trend_quantita < 0 ? '↓' : '→'} ${Math.abs(item.trend_quantita).toFixed(1)}%
+            </span>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    } else {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-8 text-[#666] dark:text-[#a09080]">
+            Nessun dato disponibile per il periodo selezionato
+          </td>
+        </tr>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+    document.getElementById('analytics-table-body').innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-8 text-red-500">
+          Errore nel caricamento dei dati: ${error.message}
+        </td>
+      </tr>
+    `;
+    
+    // Update ingredients table with error
+    document.getElementById('ingredients-table-body').innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-red-500">
+          Errore nel caricamento dati ingredienti: ${error.message}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Global variables for ingredients filtering
+let allIngredientsData = [];
+let currentIngredientsData = [];
+
+// Period selection for analytics
+document.addEventListener('DOMContentLoaded', function() {
+  // Imposta oggi come default
+  const todayBtn = document.querySelector('[data-period="today"]');
+  if (todayBtn) {
+    todayBtn.classList.remove('bg-[#f4f1f0]', 'dark:bg-[#3d2a22]');
+    todayBtn.classList.add('bg-primary', 'text-white');
+  }
+  
+  // Add event listeners for ingredient filters
+  const searchInput = document.getElementById('ingredient-search');
+  const sortSelect = document.getElementById('ingredient-sort');
+  const typeFilter = document.getElementById('ingredient-type-filter');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', filterAndSortIngredients);
+  }
+  if (sortSelect) {
+    sortSelect.addEventListener('change', filterAndSortIngredients);
+  }
+  if (typeFilter) {
+    typeFilter.addEventListener('change', filterAndSortIngredients);
+  }
+  
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Rimuovi active da tutti i pulsanti
+      document.querySelectorAll('.period-btn').forEach(b => {
+        b.classList.remove('bg-primary', 'text-white');
+        b.classList.add('bg-[#f4f1f0]', 'dark:bg-[#3d2a22]', 'text-[#181311]', 'dark:text-white');
+      });
+      
+      // Aggiungi active al pulsante cliccato
+      this.classList.remove('bg-[#f4f1f0]', 'dark:bg-[#3d2a22]', 'text-[#181311]', 'dark:text-white');
+      this.classList.add('bg-primary', 'text-white');
+      
+      // Carica dati per il periodo selezionato
+      const period = this.dataset.period;
+      console.log(`Loading analytics for period: ${period}`);
+      loadAnalytics(period);
+    });
+  });
+  
+  // Carica dati di oggi all'avvio
+  loadAnalytics('today');
+});
+
+// Filter and sort ingredients
+function filterAndSortIngredients() {
+  const searchTerm = document.getElementById('ingredient-search').value.toLowerCase();
+  const sortBy = document.getElementById('ingredient-sort').value;
+  const filterType = document.getElementById('ingredient-type-filter').value;
+  
+  // Filter ingredients
+  let filteredIngredients = allIngredientsData.filter(ingredient => {
+    const matchesSearch = ingredient.ingrediente.toLowerCase().includes(searchTerm);
+    const matchesType = !filterType || ingredient.tipo === filterType;
+    return matchesSearch && matchesType;
+  });
+  
+  // Sort ingredients
+  filteredIngredients.sort((a, b) => {
+    switch (sortBy) {
+      case 'nome':
+        return a.ingrediente.localeCompare(b.ingrediente);
+      case 'consumo':
+        return (b.consumo_unitario || 0) - (a.consumo_unitario || 0);
+      case 'costo_totale':
+        return b.costo_totale - a.costo_totale;
+      case 'costo_unitario':
+        return b.costo_unitario_effettivo - a.costo_unitario_effettivo;
+      case 'utilizzi':
+        return b.utilizzi_in_ordini - a.utilizzi_in_ordini;
+      case 'trend':
+        return Math.abs(b.cost_trend_percent) - Math.abs(a.cost_trend_percent);
+      default:
+        return 0;
+    }
+  });
+  
+  // Update table with filtered data
+  updateIngredientsTable(filteredIngredients);
+}
+
+// Update ingredients table
+function updateIngredientsTable(ingredients) {
+  const tableBody = document.getElementById('ingredients-table-body');
+  tableBody.innerHTML = '';
+  
+  console.log('Updating ingredients table with:', ingredients);
+  
+  if (ingredients && ingredients.length > 0) {
+    ingredients.forEach((ingredient, index) => {
+      console.log(`Processing ingredient ${index}:`, ingredient);
+      
+      const row = document.createElement('tr');
+      row.className = 'border-b';
+      
+      // Determina colore trend
+      let trendIcon = '→';
+      let trendColor = 'text-gray-500';
+      if (ingredient.cost_trend_percent > 5) {
+        trendIcon = '↑';
+        trendColor = 'text-red-500';
+      } else if (ingredient.cost_trend_percent < -5) {
+        trendIcon = '↓';
+        trendColor = 'text-green-500';
+      }
+      
+      // Determina colore tipo
+      let tipoColor = 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+      if (ingredient.tipo === 'base') tipoColor = 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+      else if (ingredient.tipo === 'salsa') tipoColor = 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+      else if (ingredient.tipo === 'formaggio') tipoColor = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+      else if (ingredient.tipo === 'carne') tipoColor = 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200';
+      else if (ingredient.tipo === 'verdura') tipoColor = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+      
+      // Formatta valori numerici per evitare undefined
+      const consumo = ingredient.consumo_unitario_display || '0';
+      const costoTotale = ingredient.costo_totale || 0;
+      const costoUnitario = ingredient.costo_unitario_effettivo || 0;
+      const utilizzi = ingredient.utilizzi_in_ordini || 0;
+      const trendPercent = ingredient.cost_trend_percent || 0;
+      
+      row.innerHTML = `
+        <td class="py-2 font-medium">${ingredient.ingrediente}</td>
+        <td class="py-2">
+          <span class="px-2 py-1 text-xs rounded-full ${tipoColor}">
+            ${ingredient.tipo}
+          </span>
+        </td>
+        <td class="text-center py-2">${consumo}</td>
+        <td class="text-right py-2">€${costoTotale.toFixed(2)}</td>
+        <td class="text-right py-2">€${costoUnitario.toFixed(2)}</td>
+        <td class="text-center py-2">${utilizzi}</td>
+        <td class="text-right py-2">
+          <span class="font-medium ${trendColor}">
+            ${trendIcon} ${Math.abs(trendPercent).toFixed(1)}%
+          </span>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+  } else {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-8 text-[#666] dark:text-[#a09080]">
+          Nessun ingrediente trovato con i filtri selezionati
+        </td>
+      </tr>
+    `;
+  }
+}
+</script>
+{% endblock %}

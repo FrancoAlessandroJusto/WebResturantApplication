@@ -1,0 +1,917 @@
+{% extends "base.html" %}
+
+{% block title %}PizzaAdmin - Gestione Pizze{% endblock %}
+{% block page_title %}Gestione Pizze{% endblock %}
+
+{% block sidebar %}
+<h3 class="text-sm font-semibold text-[#666] dark:text-[#a09080] mb-4">GESTIONE</h3>
+<ul class="space-y-2">
+  <li>
+    <a href="/mgmt/ui" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white">
+      <span class="material-symbols-outlined">restaurant_menu</span>
+      <span>Menu</span>
+    </a>
+  </li>
+  <li>
+    <a href="/ingredienti/ui" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white">
+      <span class="material-symbols-outlined">inventory_2</span>
+      <span>Ingredienti</span>
+    </a>
+  </li>
+</ul>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="mb-6 rounded-lg border {% if ok %}border-green-200 bg-green-50 text-green-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %} px-4 py-3">
+  {{ msg }}
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Create Menu Item Form -->
+  <div class="lg:col-span-1">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Aggiungi al Menù</h3>
+      <form id="create-menu-item-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-1">Categoria</label>
+          <select name="categoria" required class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Seleziona categoria...</option>
+            <option value="Antipasti">Antipasti</option>
+            <option value="Pizza">Pizza</option>
+            <option value="Bevande">Bevande</option>
+            <option value="Dolci">Dolci</option>
+            <option value="Varie">Varie</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-1">Nome</label>
+          <input type="text" name="nome" required class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-1">Prezzo (€)</label>
+          <input type="number" name="prezzo" step="0.01" min="0" required class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        
+        <!-- Ingredients Selection -->
+        <div>
+          <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Seleziona Ingredienti</label>
+          
+          <!-- Existing Ingredients Section (shown only during edit) -->
+          <div id="existing-ingredients-section" class="hidden mb-4">
+            <h6 class="text-sm font-semibold text-[#181311] dark:text-white mb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">restaurant_menu</span>
+              Ingredienti attuali della pizza
+            </h6>
+            <div id="existing-ingredients-list" class="space-y-2 max-h-32 overflow-y-auto border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg p-2 bg-[#f8f6f6] dark:bg-[#3d2a22]">
+              <!-- Existing ingredients will be loaded here -->
+            </div>
+          </div>
+          
+          <!-- Add New Ingredients Section -->
+          <div>
+            <h6 class="text-sm font-semibold text-[#181311] dark:text-white mb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">add_circle</span>
+              Aggiungi ingredienti aggiuntivi
+            </h6>
+            
+            <!-- Filter Dropdown -->
+            <div class="mb-3">
+              <div class="flex items-center gap-2">
+                <select id="ingredienti-tipo-filtro" onchange="filterIngredientsByType()"
+                        class="flex-1 px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm">
+                  <option value="">Tutti i tipi</option>
+                  <option value="verdura">Verdura</option>
+                  <option value="formaggio">Formaggio</option>
+                  <option value="carne">Carne</option>
+                  <option value="base">Base</option>
+                  <option value="salsa">Salsa</option>
+                  <option value="premade">Premade</option>
+                  <option value="dolci">Dolci</option>
+                  <option value="altro">Altro</option>
+                </select>
+                <button onclick="clearIngredientsFilter()" 
+                        class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm">
+                  Pulisci
+                </button>
+              </div>
+            </div>
+            
+            <div id="ingredients-selection" class="space-y-2 max-h-48 overflow-y-auto border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg p-2">
+              <!-- Ingredient checkboxes will be loaded here -->
+              <div class="text-center text-[#666] dark:text-[#a09080] py-2 text-sm">
+                Caricamento ingredienti...
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button type="submit" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+          Aggiungi al menù
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pizza List -->
+  <div class="lg:col-span-1">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-[#181311] dark:text-white">Menù Completo</h3>
+        <input type="text" id="searchInput" placeholder="Cerca nel menù..." class="px-3 py-1 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+      
+      <!-- Categories -->
+      <div class="space-y-6" id="menu-list">
+        {% set categories = ['Antipasti', 'Pizza', 'Bevande', 'Dolci', 'Varie'] %}
+        {% for category in categories %}
+        <div class="category-section" data-category="{{ category.lower() }}">
+          <h4 class="text-md font-semibold text-[#181311] dark:text-white mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">
+              {% if category == 'Antipasti' %}restaurant_menu
+              {% elif category == 'Pizza' %}local_pizza
+              {% elif category == 'Bevande' %}local_cafe
+              {% elif category == 'Dolci' %}cake
+              {% else %}more_horiz
+              {% endif %}
+            </span>
+            {{ category }}
+          </h4>
+          <div class="space-y-2">
+            {% for item in items %}
+            {% if item.categoria == category %}
+            <div class="menu-item bg-[#f8f6f6] dark:bg-[#3d2a22] rounded-lg border border-[#e5e5e5] dark:border-[#4a3a30]" data-name="{{ item.nome.lower() }}" data-category="{{ category.lower() }}">
+              <!-- Header (sempre visibile) -->
+              <div class="p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3">
+                      <button data-item-id="{{item.id}}" class="toggle-details-btn w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors" title="Espandi/Comprimi dettagli">
+                        <span class="material-symbols-outlined text-sm" id="toggle-icon-{{ item.id }}">
+                          expand_more
+                        </span>
+                      </button>
+                      <div>
+                        <h5 class="font-medium text-[#181311] dark:text-white">{{ item.nome }}</h5>
+                        <p class="text-sm text-[#666] dark:text-[#a09080]">Prezzo: &euro;{{ "%.2f"|format(item.prezzo) }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" data-item-id="{{ item.id }}" class="edit-item-btn size-10 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white flex items-center justify-center hover:bg-primary hover:text-white transition-colors" title="Modifica">
+                      <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <button type="button" data-item-id="{{ item.id }}" data-item-name="{{ item.nome|e }}" class="delete-item-btn size-10 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina">
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Dettagli espandibili -->
+              <div id="details-{{ item.id }}" class="hidden border-t border-[#e5e5e5] dark:border-[#4a3a30]">
+                <div class="p-4 bg-[#f0f0f0] dark:bg-[#2d1f1a]">
+                  <h6 class="text-sm font-semibold text-[#181311] dark:text-white mb-3">Ingredienti:</h6>
+                  {% if item.ingredienti %}
+                    <div class="space-y-2">
+                      {% for ing in item.ingredienti %}
+                      <div class="flex items-center justify-between p-2 bg-white dark:bg-[#3d2a22] rounded border border-[#e5e5e5] dark:border-[#4a3a30]">
+                        <div class="flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-full bg-primary"></span>
+                          <span class="text-sm text-[#181311] dark:text-white font-medium">{{ ing.ingrediente.nome }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm text-[#666] dark:text-[#a09080]">{{ ing.quantita }}{{ ing.ingrediente.unita_riferimento }}</span>
+                          <span class="text-xs text-[#666] dark:text-[#a09080]">€{{ "%.2f"|format((ing.ingrediente.costo_unitario / ing.ingrediente.quantita_riferimento) * ing.quantita) }}</span>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-[#e5e5e5] dark:border-[#4a3a30]">
+                      <div class="flex justify-between items-center">
+                        <span class="text-sm text-[#666] dark:text-[#a09080]">Costo ingredienti:</span>
+                        <span class="text-sm font-semibold text-[#181311] dark:text-white">
+                          €{{ "%.2f"|format(item.costo_ingredienti or 0) }}
+                        </span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <p class="text-sm text-[#666] dark:text-[#a09080] italic">Nessun ingrediente specificato</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            
+            {% if not items | selectattr('categoria', 'equalto', category) | list %}
+            <div class="text-center py-4 text-[#666] dark:text-[#a09080] italic">
+              Nessun articolo in questa categoria
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+        
+        {% if not items %}
+        <div class="text-center py-8 text-[#666] dark:text-[#a09080]">
+          Nessun articolo nel menù. Iniziane ad aggiungere uno!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let ingredients = [];
+let ingredientsLoaded = false;
+let ingredientsFilterType = null;
+
+// Create ingredient (only if the form exists on this page)
+const createIngredientForm = document.getElementById('create-ingredient-form');
+if (createIngredientForm) {
+  createIngredientForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const nome = document.getElementById('ing-nome').value;
+    const tipo = document.getElementById('ing-tipo').value;
+    const costo = parseFloat(document.getElementById('ing-costo').value);
+    const unita = document.getElementById('ing-unita').value;
+    
+    try {
+      const response = await fetch('/ingredienti', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: nome,
+          tipo: tipo,
+          costo_unitario: costo,
+          unita_riferimento: unita
+        })
+      });
+      
+      if (response.ok) {
+        // Reset form
+        this.reset();
+        
+        // Reload ingredients
+        await loadIngredients();
+        
+        showMessage('Ingrediente aggiunto con successo!', 'success');
+      } else {
+        const error = await response.json();
+        showMessage(error.detail || 'Errore durante la creazione', 'error');
+      }
+    } catch (error) {
+      console.error('Error creating ingredient:', error);
+      showMessage('Errore durante la creazione', 'error');
+    }
+  });
+}
+
+// Load ingredients from API
+async function loadIngredients() {
+  console.log('=== LOAD INGREDIENTS DEBUG ===');
+  console.log('1. Starting loadIngredients function');
+  
+  if (ingredientsLoaded) {
+    console.log('2. Ingredients already loaded, skipping...');
+    return;
+  }
+  
+  console.log('3. Making API call to /ingredienti');
+  
+  try {
+    // Step 1: Check if fetch works
+    console.log('4. Calling fetch...');
+    const response = await fetch('/ingredienti');
+    console.log('5. Fetch response received:', response);
+    console.log('6. Response status:', response.status);
+    console.log('7. Response ok:', response.ok);
+    
+    if (!response.ok) {
+      console.error('8. Response not OK! Status:', response.status);
+      const errorText = await response.text();
+      console.error('9. Error response body:', errorText);
+      return;
+    }
+    
+    // Step 2: Parse JSON
+    console.log('10. Parsing JSON response...');
+    ingredients = await response.json();
+    console.log('11. JSON parsed successfully');
+    console.log('12. Ingredients data:', ingredients);
+    console.log('13. Ingredients type:', typeof ingredients);
+    console.log('14. Ingredients is array:', Array.isArray(ingredients));
+    console.log('15. Ingredients count:', ingredients.length);
+    
+    // Step 3: Check first ingredient structure
+    if (ingredients.length > 0) {
+      console.log('16. First ingredient sample:', ingredients[0]);
+      console.log('17. First ingredient keys:', Object.keys(ingredients[0]));
+    } else {
+      console.log('16. No ingredients found in response');
+    }
+    
+    ingredientsLoaded = true;
+    console.log('18. Calling renderIngredientsCheckboxes...');
+    renderIngredientsCheckboxes();
+    console.log('19. renderIngredientsCheckboxes completed');
+    
+  } catch (error) {
+    console.error('20. ERROR in loadIngredients:', error);
+    console.error('21. Error name:', error.name);
+    console.error('22. Error message:', error.message);
+    console.error('23. Error stack:', error.stack);
+  }
+  
+  console.log('=== END LOAD INGREDIENTS DEBUG ===');
+}
+
+// Render ingredient checkboxes for menu item creation
+function renderIngredientsCheckboxes() {
+  const container = document.getElementById('ingredients-selection');
+  
+  // Save current selections AND quantities before re-rendering
+  const currentSelections = new Map();
+  document.querySelectorAll('.ingredient-checkbox:checked').forEach(checkbox => {
+    const ingId = checkbox.value;
+    const qtyInput = document.getElementById(`qty-${ingId}`);
+    currentSelections.set(ingId, {
+      checked: true,
+      quantity: qtyInput.value || ''
+    });
+  });
+  
+  container.innerHTML = '';
+  
+  if (ingredients.length === 0) {
+    container.innerHTML = '<div class="text-center text-[#666] dark:text-[#a09080] py-2 text-sm">Nessun ingrediente disponibile. Aggiungi ingredienti prima di creare menu items.</div>';
+    return;
+  }
+  
+  // Filter ingredients by type if filter is set
+  let ingredientsToRender = ingredients;
+  if (ingredientsFilterType) {
+    ingredientsToRender = ingredients.filter(ing => ing.tipo === ingredientsFilterType);
+  }
+  
+  if (ingredientsToRender.length === 0) {
+    container.innerHTML = '<div class="text-center text-[#666] dark:text-[#a09080] py-2 text-sm">Nessun ingrediente di questo tipo</div>';
+    return;
+  }
+  
+  ingredientsToRender.forEach(ing => {
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'flex items-center gap-2 p-1';
+    checkboxDiv.innerHTML = `
+      <input type="checkbox" id="ing-${ing.id}" value="${ing.id}" class="ingredient-checkbox">
+      <label for="ing-${ing.id}" class="flex-1 text-sm text-[#181311] dark:text-white cursor-pointer">
+        ${ing.nome}
+        <span class="text-xs text-[#666] dark:text-[#a09080]">(${ing.quantita_riferimento || 1} ${ing.unita_riferimento} - €${ing.costo_unitario.toFixed(2)})</span>
+      </label>
+      <input type="number" id="qty-${ing.id}" placeholder="Q.tà" min="0.1" step="0.1" 
+             class="w-16 px-1 py-0.5 text-xs border border-[#e5e5e5] dark:border-[#4a3a30] rounded bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white"
+             disabled>
+      <span class="text-xs text-[#666] dark:text-[#a09080]">${ing.unita_riferimento}</span>
+    `;
+    container.appendChild(checkboxDiv);
+    
+    // Enable/disable quantity input based on checkbox
+    const checkbox = checkboxDiv.querySelector('.ingredient-checkbox');
+    const qtyInput = checkboxDiv.querySelector('input[type="number"]');
+    
+    checkbox.addEventListener('change', function() {
+      qtyInput.disabled = !this.checked;
+      if (this.checked) {
+        qtyInput.focus();
+      }
+    });
+    
+    // Restore previous selection if exists
+    const savedSelection = currentSelections.get(ing.id.toString());
+    if (savedSelection && savedSelection.checked) {
+      checkbox.checked = true;
+      qtyInput.disabled = false;
+      qtyInput.value = savedSelection.quantity;
+    }
+  });
+}
+
+// Add new ingredient (if the quick-add form is present)
+const addIngredientForm = document.getElementById('add-ingredient-form');
+if (addIngredientForm) {
+  addIngredientForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const nome = document.getElementById('ingrediente-nome').value;
+    const unita = document.getElementById('ingrediente-unita').value;
+    const costo = parseFloat(document.getElementById('ingrediente-costo').value);
+    
+    try {
+      const response = await fetch('/ingredienti', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: nome,
+          unita_riferimento: unita,
+          costo_unitario: costo
+        })
+      });
+      
+      if (response.ok) {
+        // Reset form
+        this.reset();
+        
+        // Reload ingredients
+        await loadIngredients();
+        
+        showMessage('Ingrediente aggiunto con successo!', 'success');
+      } else {
+        const error = await response.json();
+        showMessage(error.detail || 'Errore durante l\'aggiunta', 'error');
+      }
+    } catch (error) {
+      console.error('Error adding ingredient:', error);
+      showMessage('Errore durante l\'aggiunta', 'error');
+    }
+  });
+}
+
+// Create menu item with ingredients (always present on this page)
+const createMenuItemForm = document.getElementById('create-menu-item-form');
+if (createMenuItemForm) {
+  createMenuItemForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  const selectedIngredients = [];
+  const editId = document.getElementById('edit-item-id')?.value;
+  
+  // Get selected ingredients with quantities from BOTH sections
+  document.querySelectorAll('.ingredient-checkbox:checked').forEach(checkbox => {
+    const ingId = parseInt(checkbox.value);
+    const qtyInput = document.getElementById(`qty-${ingId}`);
+    const quantity = parseFloat(qtyInput.value) || 0;
+    
+    if (quantity > 0) {
+      selectedIngredients.push({
+        ingrediente_id: ingId,
+        quantita: quantity
+      });
+    }
+  });
+  
+  // ALSO get ingredients from the "existing ingredients" section
+  const existingIngredientsList = document.getElementById('existing-ingredients-list');
+  if (existingIngredientsList) {
+    const existingIngredients = existingIngredientsList.querySelectorAll('button[onclick*="removeExistingIngredient"]');
+    existingIngredients.forEach(btn => {
+      const onclickAttr = btn.getAttribute('onclick');
+      const ingredientId = onclickAttr.match(/removeExistingIngredient\((\d+)\)/);
+      if (ingredientId) {
+        const ingId = parseInt(ingredientId[1]);
+        const ingredientDiv = btn.closest('.flex');
+        const quantityText = ingredientDiv.querySelector('.text-sm.text-\\[#666\\]')?.textContent;
+        if (quantityText) {
+          // Extract quantity from text like "1.0kg"
+          const quantityMatch = quantityText.match(/([\d.]+)/);
+          const quantity = quantityMatch ? parseFloat(quantityMatch[1]) : 0;
+          
+          if (quantity > 0) {
+            selectedIngredients.push({
+              ingrediente_id: ingId,
+              quantita: quantity
+            });
+          }
+        }
+      }
+    });
+  }
+  
+  const itemData = {
+    nome: formData.get('nome'),
+    prezzo: parseFloat(formData.get('prezzo')),
+    categoria: formData.get('categoria'),
+    ingredienti: selectedIngredients
+  };
+  
+  try {
+    const isEdit = editId && editId !== '';
+    const url = isEdit ? `/menu/${editId}` : '/menu';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(itemData)
+    });
+    
+    if (response.ok) {
+      const message = isEdit ? 'Elemento aggiornato con successo!' : 'Elemento creato con successo!';
+      showMessage(message, 'success');
+      
+      // Reset form and edit mode
+      this.reset();
+      
+      // Hide existing ingredients section when creating new item
+      const existingSection = document.getElementById('existing-ingredients-section');
+      existingSection.classList.add('hidden');
+      
+      const editIdField = document.getElementById('edit-item-id');
+      if (editIdField) {
+        editIdField.remove();
+      }
+      
+      // Reset submit button text
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.textContent = 'Aggiungi al menù';
+      
+      // Reset checkboxes
+      document.querySelectorAll('.ingredient-checkbox').forEach(cb => cb.checked = false);
+      document.querySelectorAll('input[type="number"][id^="qty-"]').forEach(input => {
+        input.value = '';
+        input.disabled = true;
+      });
+      
+      // since we changed the menu, reload the page once instead of fetch loop
+      window.location.reload();
+    } else {
+      const error = await response.json();
+      const action = isEdit ? 'aggiornamento' : 'creazione';
+      
+      // Gestione specifica per duplicati
+      if (response.status === 409) {
+        showMessage(error.detail || 'Nome articolo già esistente', false);
+      } else {
+        showMessage(error.detail || `Errore durante ${action}`, false);
+      }
+    }
+  } catch (error) {
+    console.error('Error saving menu item:', error);
+    showMessage('Errore durante il salvataggio', false);
+  }
+});
+}
+
+// Filter ingredients by type
+function filterIngredientsByType() {
+  const filterSelect = document.getElementById('ingredienti-tipo-filtro');
+  const selectedType = filterSelect.value;
+  
+  if (selectedType === '') {
+    ingredientsFilterType = null;
+  } else {
+    ingredientsFilterType = selectedType;
+  }
+  
+  renderIngredientsCheckboxes();
+}
+
+// Clear ingredients filter
+function clearIngredientsFilter() {
+  ingredientsFilterType = null;
+  document.getElementById('ingredienti-tipo-filtro').value = '';
+  renderIngredientsCheckboxes();
+}
+
+// Load menu items
+async function loadMenuItems() {
+  try {
+    const response = await fetch('/menu');
+    menuItems = await response.json();
+  } catch (error) {
+    console.error('Error loading menu items:', error);
+  }
+}
+
+// Toggle menu item details
+function toggleMenuItemDetails(itemId) {
+  const detailsDiv = document.getElementById(`details-${itemId}`);
+  const toggleIcon = document.getElementById(`toggle-icon-${itemId}`);
+  
+  if (detailsDiv.classList.contains('hidden')) {
+    // Espandi
+    detailsDiv.classList.remove('hidden');
+    toggleIcon.textContent = 'expand_less';
+  } else {
+    // Comprimi
+    detailsDiv.classList.add('hidden');
+    toggleIcon.textContent = 'expand_more';
+  }
+}
+
+// Delete menu item functionality
+async function deleteItem(itemId, itemName) {
+  if (!confirm(`Sei sicuro di voler eliminare "${itemName}" dal menù?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/mgmt/items/${itemId}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      // Remove the item element from the DOM
+      const itemElement = document.querySelector(`[data-name="${itemName.toLowerCase()}"]`);
+      if (itemElement) {
+        itemElement.remove();
+      }
+      
+      // Show success message
+      showMessage('Articolo eliminato con successo!', 'success');
+    } else {
+      const error = await response.json();
+      showMessage(error.detail || 'Errore durante l\'eliminazione', 'error');
+    }
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    showMessage('Errore durante l\'eliminazione', 'error');
+  }
+}
+
+// Edit menu item
+async function editMenuItem(itemId) {
+  try {
+    console.log('Editing menu item:', itemId);
+    
+    // Fetch item data from API
+    const response = await fetch(`/menu/${itemId}`);
+    if (!response.ok) {
+      throw new Error('Errore nel caricamento dell\'elemento');
+    }
+    
+    const item = await response.json();
+    console.log('Item data loaded:', item);
+    
+    // Show existing ingredients section
+    const existingSection = document.getElementById('existing-ingredients-section');
+    existingSection.classList.remove('hidden');
+    
+    // Populate form with item data
+    document.querySelector('[name="categoria"]').value = item.categoria || '';
+    document.querySelector('[name="nome"]').value = item.nome || '';
+    document.querySelector('[name="prezzo"]').value = item.prezzo || '';
+    
+    // Load existing ingredients in the separate section
+    if (item.ingredienti && item.ingredienti.length > 0) {
+      console.log('Loading existing ingredients:', item.ingredienti);
+      
+      // Wait for ingredients to be loaded if needed
+      if (!ingredientsLoaded) {
+        await loadIngredients();
+      }
+      
+      // Display existing ingredients in the dedicated section
+      const existingList = document.getElementById('existing-ingredients-list');
+      existingList.innerHTML = '';
+      
+      item.ingredienti.forEach(existingIng => {
+        const ingDiv = document.createElement('div');
+        ingDiv.className = 'flex items-center justify-between p-2 bg-white dark:bg-[#3d2a22] rounded border border-[#e5e5e5] dark:border-[#4a3a30]';
+        ingDiv.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-primary"></span>
+            <span class="text-sm text-[#181311] dark:text-white font-medium">${existingIng.ingrediente.nome}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-[#666] dark:text-[#a09080]">${existingIng.quantita}${existingIng.ingrediente.unita_riferimento}</span>
+            <button type="button" onclick="removeExistingIngredient(${existingIng.ingrediente_id})" 
+                    class="w-6 h-6 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors text-xs">
+              <span class="material-symbols-outlined text-sm">remove</span>
+            </button>
+          </div>
+        `;
+        existingList.appendChild(ingDiv);
+      });
+    } else {
+      // No existing ingredients
+      const existingList = document.getElementById('existing-ingredients-list');
+      existingList.innerHTML = '<div class="text-center text-[#666] dark:text-[#a09080] py-2 text-sm">Nessun ingrediente presente</div>';
+    }
+    
+    // Change submit button text
+    const submitBtn = document.querySelector('#create-menu-item-form button[type="submit"]');
+    submitBtn.textContent = 'Aggiorna Modifiche';
+    
+    // Add hidden field for edit mode
+    let editIdField = document.getElementById('edit-item-id');
+    if (!editIdField) {
+      editIdField = document.createElement('input');
+      editIdField.type = 'hidden';
+      editIdField.id = 'edit-item-id';
+      editIdField.name = 'edit_id';
+      document.getElementById('create-menu-item-form').appendChild(editIdField);
+    }
+    editIdField.value = itemId;
+    
+    // Scroll to form
+    document.getElementById('create-menu-item-form').scrollIntoView({ behavior: 'smooth' });
+    
+    // Focus on first field
+    document.querySelector('[name="categoria"]').focus();
+    
+  } catch (error) {
+    console.error('Error editing menu item:', error);
+    showMessage('Errore durante il caricamento dell\'elemento', false);
+  }
+}
+
+// Move selected ingredient from "add" section to "existing" section
+function moveToExistingSection(ingredientId, quantity) {
+  // Find the ingredient data from the global ingredients array
+  const ingredient = ingredients.find(ing => ing.id == ingredientId);
+  if (!ingredient) return;
+  
+  // Create element for existing ingredients section
+  const existingList = document.getElementById('existing-ingredients-list');
+  
+  // Check if ingredient already exists in the existing section
+  const existingIngredient = existingList.querySelector(`button[onclick*="${ingredientId}"]`);
+  if (existingIngredient) {
+    // Update quantity of existing ingredient instead of adding duplicate
+    const quantitySpan = existingIngredient.closest('.flex').querySelector('.text-sm.text-\\[#666\\]');
+    if (quantitySpan) {
+      quantitySpan.textContent = `${quantity}${ingredient.unita_riferimento}`;
+    }
+  } else {
+    // Remove "no ingredients" message if present
+    const noIngMsg = existingList.querySelector('.text-center');
+    if (noIngMsg) {
+      noIngMsg.remove();
+    }
+    
+    const ingDiv = document.createElement('div');
+    ingDiv.className = 'flex items-center justify-between p-2 bg-white dark:bg-[#3d2a22] rounded border border-[#e5e5e5] dark:border-[#4a3a30]';
+    ingDiv.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary"></span>
+        <span class="text-sm text-[#181311] dark:text-white font-medium">${ingredient.nome}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-[#666] dark:text-[#a09080]">${quantity}${ingredient.unita_riferimento}</span>
+        <button type="button" onclick="removeExistingIngredient(${ingredient.id})" 
+                class="w-6 h-6 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors text-xs">
+          <span class="material-symbols-outlined text-sm">remove</span>
+        </button>
+      </div>
+    `;
+    existingList.appendChild(ingDiv);
+  }
+  
+  // Uncheck and clear from the "add" section
+  const checkbox = document.getElementById(`ing-${ingredientId}`);
+  if (checkbox) {
+    checkbox.checked = false;
+    const qtyInput = document.getElementById(`qty-${ingredientId}`);
+    if (qtyInput) {
+      qtyInput.value = '';
+      qtyInput.disabled = true;
+    }
+  }
+}
+
+// Add event listener for ingredient selection changes
+function setupIngredientSelectionListener() {
+  const container = document.getElementById('ingredients-selection');
+  
+  container.addEventListener('change', function(e) {
+    if (e.target.classList.contains('ingredient-checkbox') && e.target.checked) {
+      const ingredientId = e.target.value;
+      const qtyInput = document.getElementById(`qty-${ingredientId}`);
+      const quantity = parseFloat(qtyInput.value) || 0;
+      
+      if (quantity > 0) {
+        // Check if we're in edit mode
+        const editIdField = document.getElementById('edit-item-id');
+        if (editIdField && editIdField.value) {
+          // We're in edit mode, move to existing section
+          setTimeout(() => {
+            moveToExistingSection(ingredientId, quantity);
+          }, 100);
+        }
+      }
+    }
+  });
+}
+function removeExistingIngredient(ingredientId) {
+  const existingList = document.getElementById('existing-ingredients-list');
+  const ingredientElements = existingList.querySelectorAll('button[onclick*="' + ingredientId + '"]');
+  
+  ingredientElements.forEach(btn => {
+    const ingDiv = btn.closest('.flex');
+    ingDiv.remove();
+  });
+  
+  // Also uncheck from the main selection if present
+  const checkbox = document.getElementById(`ing-${ingredientId}`);
+  if (checkbox) {
+    checkbox.checked = false;
+    const qtyInput = document.getElementById(`qty-${ingredientId}`);
+    if (qtyInput) {
+      qtyInput.value = '';
+      qtyInput.disabled = true;
+    }
+  }
+}
+
+// Add event listeners for edit buttons
+document.addEventListener('DOMContentLoaded', function() {
+  // Load ingredients when page loads
+  loadIngredients();
+  
+  // Setup ingredient selection listener
+  setupIngredientSelectionListener();
+  
+  // Add click listeners to edit buttons
+  document.querySelectorAll('.edit-item-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.dataset.itemId;
+      editMenuItem(itemId);
+    });
+  });
+  
+  // Add click listeners to delete buttons
+  document.querySelectorAll('.delete-item-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.dataset.itemId;
+      const itemName = this.dataset.itemName;
+      deleteItem(itemId, itemName);
+    });
+  });
+});
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Page loaded, starting initialization...');
+  
+  // Load ingredients and menu items
+  loadIngredients();
+  loadMenuItems();
+  
+  // Add event listeners for delete buttons
+  document.querySelectorAll('.delete-item-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.dataset.itemId;
+      const itemName = this.dataset.itemName;
+      deleteItem(itemId, itemName);
+    });
+  });
+  
+  // Add event listeners for edit buttons
+  document.querySelectorAll('.edit-item-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.dataset.itemId;
+      editMenuItem(itemId);
+    });
+  });
+  
+  // Add event listeners for toggle details buttons
+  document.querySelectorAll('.toggle-details-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.dataset.itemId;
+      toggleMenuItemDetails(itemId);
+    });
+  });
+  
+  // Search filter
+  document.getElementById("searchInput").addEventListener("input", function (e) {
+    const q = (e.target.value || "").trim().toLowerCase();
+    const items = document.querySelectorAll(".menu-item");
+    
+    for (let i = 0; i < items.length; i++) {
+      const name = items[i].dataset.name || "";
+      const match = name.includes(q);
+      items[i].style.display = match ? "" : "none";
+    }
+    
+    // Hide empty categories if no items match
+    document.querySelectorAll('.category-section').forEach(section => {
+      const visibleItems = section.querySelectorAll('.menu-item[style=""], .menu-item:not([style*="display: none"])');
+      const categoryTitle = section.querySelector('h4');
+      const emptyMessage = section.querySelector('.text-center.py-4');
+      
+      if (visibleItems.length === 0 && q !== "") {
+        categoryTitle.style.display = 'none';
+        if (emptyMessage) emptyMessage.style.display = 'block';
+      } else {
+        categoryTitle.style.display = 'flex';
+        if (emptyMessage) emptyMessage.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Ingredienti Pizza</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; white-space: pre-wrap; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .ingredient-list { background: #e9ecef; padding: 10px; margin: 10px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Test Sistema Ingredienti Pizza</h1>
+    
+    <div class="test-section">
+        <h2>Step 1: Crea Pizza Milano</h2>
+        <button onclick="createPizzaMilano()">Crea Pizza Milano</button>
+        <div id="create-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Step 2: Modifica Pizza Milano</h2>
+        <button onclick="modifyPizzaMilano()">Modifica Pizza Milano</button>
+        <div id="modify-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Step 3: Verifica Ingredienti Finali</h2>
+        <button onclick="verifyFinalIngredients()">Verifica Ingredienti</button>
+        <div id="verify-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Log Completo</h2>
+        <div id="log" class="log"></div>
+        <button onclick="clearLog()">Pulisci Log</button>
+    </div>
+
+    <script>
+        let pizzaId = null;
+        let testLog = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            testLog.push(logEntry);
+            updateLogDisplay();
+            console.log(logEntry);
+        }
+
+        function updateLogDisplay() {
+            document.getElementById('log').textContent = testLog.join('\n');
+        }
+
+        function clearLog() {
+            testLog = [];
+            updateLogDisplay();
+        }
+
+        async function createPizzaMilano() {
+            try {
+                log('🍕 Inizio creazione Pizza Milano...');
+                
+                // Step 1: Trova ingredienti necessari
+                const ingredientsResponse = await fetch('http://127.0.0.1:8000/ingredienti');
+                const allIngredients = await ingredientsResponse.json();
+                
+                const bacon = allIngredients.find(ing => ing.nome.toLowerCase().includes('bacon'));
+                const fiordilatte = allIngredients.find(ing => ing.nome.toLowerCase().includes('fiordilatte'));
+                
+                log(`Trovato Bacon: ${bacon ? bacon.nome : 'NON TROVATO'}`);
+                log(`Trovato Fiordilatte: ${fiordilatte ? fiordilatte.nome : 'NON TROVATO'}`);
+                
+                if (!bacon) {
+                    throw new Error('Bacon non trovato');
+                }
+                
+                // Step 2: Crea la pizza
+                const pizzaData = {
+                    nome: 'Milano',
+                    prezzo: 20.0,
+                    categoria: 'Pizza',
+                    ingredienti: [
+                        {
+                            ingrediente_id: bacon.id,
+                            quantita: 1.0
+                        }
+                    ]
+                };
+                
+                log(`Dati pizza: ${JSON.stringify(pizzaData, null, 2)}`);
+                
+                const createResponse = await fetch('http://127.0.0.1:8000/menu', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(pizzaData)
+                });
+                
+                if (!createResponse.ok) {
+                    const error = await createResponse.text();
+                    throw new Error(`Errore creazione: ${createResponse.status} - ${error}`);
+                }
+                
+                const createdPizza = await createResponse.json();
+                pizzaId = createdPizza.id;
+                
+                log(`✅ Pizza Milano creata con ID: ${pizzaId}`);
+                
+                // Step 3: Verifica ingredienti dopo creazione
+                const verifyResponse = await fetch(`http://127.0.0.1:8000/menu/${pizzaId}`);
+                const pizzaDetails = await verifyResponse.json();
+                
+                const ingredientNames = pizzaDetails.ingredienti.map(ing => ing.ingrediente.nome);
+                log(`Ingredienti dopo creazione: ${ingredientNames.join(', ')}`);
+                
+                document.getElementById('create-result').innerHTML = 
+                    `<div class="success">✅ Pizza Milano creata (ID: ${pizzaId})<br>Ingredienti: ${ingredientNames.join(', ')}</div>`;
+                
+            } catch (error) {
+                log(`❌ Errore creazione: ${error.message}`, 'error');
+                document.getElementById('create-result').innerHTML = 
+                    `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        async function modifyPizzaMilano() {
+            try {
+                if (!pizzaId) {
+                    throw new Error('Prima crea la pizza Milano');
+                }
+                
+                log('🔧 Inizio modifica Pizza Milano...');
+                
+                // Step 1: Trova Bufala
+                const ingredientsResponse = await fetch('http://127.0.0.1:8000/ingredienti');
+                const allIngredients = await ingredientsResponse.json();
+                
+                const bufala = allIngredients.find(ing => ing.nome.toLowerCase().includes('bufala'));
+                log(`Trovato Bufala: ${bufala ? bufala.nome : 'NON TROVATA'}`);
+                
+                if (!bufala) {
+                    throw new Error('Bufala non trovata');
+                }
+                
+                // Step 2: Ottieni ingredienti attuali
+                const currentResponse = await fetch(`http://127.0.0.1:8000/menu/${pizzaId}`);
+                const currentPizzaData = await currentResponse.json();
+                
+                const currentIngredients = currentPizzaData.ingredienti.map(ing => ({
+                    ingrediente_id: ing.ingrediente_id,
+                    quantita: ing.quantita
+                }));
+                
+                log(`Ingredienti attuali (${currentIngredients.length}): ${JSON.stringify(currentIngredients)}`);
+                
+                // Step 3: Aggiungi Bufala agli ingredienti esistenti
+                const updatedIngredients = [...currentIngredients, {
+                    ingrediente_id: bufala.id,
+                    quantita: 1.0
+                }];
+                
+                log(`Ingredienti aggiornati (${updatedIngredients.length}): ${JSON.stringify(updatedIngredients)}`);
+                
+                // Step 4: Aggiorna la pizza
+                const updateData = {
+                    nome: 'Milano',
+                    prezzo: 20.0,
+                    categoria: 'Pizza',
+                    ingredienti: updatedIngredients
+                };
+                
+                const updateResponse = await fetch(`http://127.0.0.1:8000/menu/${pizzaId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (!updateResponse.ok) {
+                    const error = await updateResponse.text();
+                    throw new Error(`Errore aggiornamento: ${updateResponse.status} - ${error}`);
+                }
+                
+                log(`✅ Pizza Milano aggiornata`);
+                
+                // Step 5: Verifica ingredienti dopo modifica
+                const verifyResponse = await fetch(`http://127.0.0.1:8000/menu/${pizzaId}`);
+                const updatedPizza = await verifyResponse.json();
+                
+                const finalIngredientNames = updatedPizza.ingredienti.map(ing => ing.ingrediente.nome);
+                log(`Ingredienti dopo modifica: ${finalIngredientNames.join(', ')}`);
+                
+                document.getElementById('modify-result').innerHTML = 
+                    `<div class="success">✅ Pizza Milano aggiornata<br>Ingredienti: ${finalIngredientNames.join(', ')}</div>`;
+                
+            } catch (error) {
+                log(`❌ Errore modifica: ${error.message}`, 'error');
+                document.getElementById('modify-result').innerHTML = 
+                    `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        async function verifyFinalIngredients() {
+            try {
+                if (!pizzaId) {
+                    throw new Error('Prima crea la pizza Milano');
+                }
+                
+                log('🔍 Verifica ingredienti finali...');
+                
+                const response = await fetch(`http://127.0.0.1:8000/menu/${pizzaId}`);
+                const pizza = await response.json();
+                
+                const ingredientNames = pizza.ingredienti.map(ing => ing.ingrediente.nome);
+                const ingredientDetails = pizza.ingredienti.map(ing => 
+                    `${ing.ingrediente.nome}: ${ing.quantita}${ing.ingrediente.unita_riferimento}`
+                );
+                
+                log(`Ingredienti finali (${ingredientNames.length}): ${ingredientNames.join(', ')}`);
+                log(`Dettagli: ${ingredientDetails.join(', ')}`);
+                
+                // Verifica se ha sia Bacon che Bufala
+                const hasBacon = ingredientNames.some(name => name.toLowerCase().includes('bacon'));
+                const hasBufala = ingredientNames.some(name => name.toLowerCase().includes('bufala'));
+                
+                let resultHtml = `<div class="ingredient-list">`;
+                resultHtml += `<h3>Ingredienti Finali:</h3>`;
+                resultHtml += `<ul>`;
+                ingredientDetails.forEach(detail => {
+                    resultHtml += `<li>${detail}</li>`;
+                });
+                resultHtml += `</ul>`;
+                
+                if (hasBacon && hasBufala) {
+                    resultHtml += `<div class="success">✅ TEST PASSATO: Pizza ha sia Bacon che Bufala!</div>`;
+                    log('✅ TEST PASSATO: Pizza ha sia Bacon che Bufala!', 'success');
+                } else {
+                    resultHtml += `<div class="error">❌ TEST FALLITO: Manca ${!hasBacon ? 'Bacon' : ''} ${!hasBufala ? 'Bufala' : ''}</div>`;
+                    log(`❌ TEST FALLITO: Manca ${!hasBacon ? 'Bacon' : ''} ${!hasBufala ? 'Bufala' : ''}`, 'error');
+                }
+                
+                resultHtml += `</div>`;
+                
+                document.getElementById('verify-result').innerHTML = resultHtml;
+                
+            } catch (error) {
+                log(`❌ Errore verifica: ${error.message}`, 'error');
+                document.getElementById('verify-result').innerHTML = 
+                    `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

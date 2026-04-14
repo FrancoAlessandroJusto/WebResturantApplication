@@ -1,0 +1,1634 @@
+{% extends "base.html" %}
+
+{% block title %}PizzaAdmin - Gestione Ordini{% endblock %}
+{% block page_title %}Gestione Ordini{% endblock %}
+
+{% block sidebar %}
+<div class="space-y-6">
+  <!-- Sezione Nuovo Ordine -->
+  <div>
+    <h3 class="text-sm font-semibold text-[#666] dark:text-[#a09080] mb-3">NUOVO ORDINE</h3>
+    <ul class="space-y-2">
+      <li>
+        <a href="#" onclick="showNewOrder()" id="new-order-link" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white transition-colors">
+          <span class="material-symbols-outlined">receipt_long</span>
+          <span>Crea Ordine</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+  
+  <!-- Sezione Ordini Attivi -->
+  <div>
+    <h3 class="text-sm font-semibold text-[#666] dark:text-[#a09080] mb-3">ORDINI ATTIVI</h3>
+    <ul class="space-y-2">
+      <li>
+        <a href="#" onclick="showActiveOrders()" id="active-orders-link" class="flex items-center gap-3 p-2 rounded-lg bg-[#e5e5e5] dark:bg-[#4a3a30] text-primary font-medium transition-colors">
+          <span class="material-symbols-outlined">restaurant</span>
+          <span>Gestisci Ordini</span>
+        </a>
+      </li>
+    </ul>
+    
+    <!-- Lista tavoli occupati -->
+    <div class="mt-4">
+      <h4 class="text-xs font-semibold text-[#666] dark:text-[#a09080] mb-2">TAVOLI OCCUPATI</h4>
+      <div id="active-orders-list" class="space-y-1">
+        <!-- Gli ordini attivi verranno caricati qui -->
+        <div class="text-center text-[#999] dark:text-[#a09080] text-xs py-4">
+          Nessun ordine attivo
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Nuovo Ordine View -->
+<div id="new-order-view" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <!-- Table Selection -->
+  <div class="lg:col-span-1">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <!-- Date Selector -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Seleziona Data</label>
+        <div id="custom-date-container" class="mt-2">
+          <input type="text" 
+                 id="custom-date" 
+                 placeholder="gg/mm/aaaa (es: 11/03/2026)" 
+                 pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                 maxlength="10"
+                 oninput="onCustomDateInput(this)"
+                 onchange="onCustomDateChange()"
+                 class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
+          <div class="text-xs text-[#666] dark:text-[#a09080] mt-1">Formato: gg/mm/aaaa</div>
+        </div>
+      </div>
+      
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Seleziona Tavolo</h3>
+      <div class="grid grid-cols-4 gap-2" id="table-selection">
+        <!-- Table buttons will be generated here -->
+      </div>
+      <div class="mt-4 text-sm text-[#666] dark:text-[#a09080]">
+        <p>Clicca su un tavolo per iniziare l'ordine</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Menu Ristorante -->
+  <div class="lg:col-span-2">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <h3 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Menu Ristorante</h3>
+      <div id="pizza-menu" class="space-y-2 max-h-96 overflow-y-auto border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg p-2">
+        <!-- Menu items will be loaded here grouped by category -->
+        <div class="text-center text-[#666] dark:text-[#a09080] py-4">
+          Seleziona un tavolo per iniziare
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Order Summary -->
+  <div class="lg:col-span-1">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-[#181311] dark:text-white">Ordine Corrente</h3>
+        <button onclick="clearCurrentOrder()" class="text-sm text-red-500 hover:text-red-700 transition-colors" id="clear-btn" disabled>
+          Svuota
+        </button>
+      </div>
+      <p id="selected-table" class="text-sm text-[#666] dark:text-[#a09080] mb-4">Nessun tavolo selezionato</p>
+      
+      <!-- Numero Persone -->
+      <div id="people-section" class="mb-4" style="display: none;">
+        <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Numero Persone</label>
+        <div class="flex items-center gap-2">
+          <input type="number" id="people-count" min="1" max="20" value="1" 
+                 class="flex-1 px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
+          <span class="text-sm text-[#666] dark:text-[#a09080]">persone</span>
+        </div>
+      </div>
+      
+      <div id="current-order" class="space-y-3 max-h-64 overflow-y-auto">
+        <div class="text-center py-8 text-[#666] dark:text-[#a09080]">
+          Nessuna pizza nell'ordine. Seleziona dal menu.
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-[#e5e5e5] dark:border-[#4a3a30]">
+        <!-- Dettagli Costi -->
+        <div id="cost-details" class="space-y-2 mb-4" style="display: none;">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-[#666] dark:text-[#a09080]">Totale Ordine:</span>
+            <span id="order-subtotal" class="text-[#181311] dark:text-white">€0.00</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-[#666] dark:text-[#a09080]">Coperto (2€ x <span id="people-display">1</span>):</span>
+            <span id="cover-charge" class="text-[#181311] dark:text-white">€2.00</span>
+          </div>
+        </div>
+        
+        <!-- Totale Finale -->
+        <div class="flex justify-between items-center">
+          <span class="text-lg font-semibold text-[#181311] dark:text-white">Totale:</span>
+          <span id="order-total" class="text-2xl font-bold text-primary">€0.00</span>
+        </div>
+        <button onclick="confirmOrder()" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed mt-4" id="confirm-btn" disabled>
+          Conferma Ordine
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Active Orders View -->
+<div id="active-orders-view" class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: none;">
+  <!-- Lista Ordini Attivi -->
+  <div class="lg:col-span-1">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <!-- Date Selector per Gestione Ordini -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Seleziona Data</label>
+        <div id="custom-date-container-orders" class="mt-2">
+          <input type="text" 
+                 id="custom-date-orders" 
+                 placeholder="gg/mm/aaaa (es: 11/03/2026)" 
+                 pattern="[0-9]{2}/[0-9]{2}/[0-9]{4]"
+                 maxlength="10"
+                 oninput="onCustomDateInputOrders(this)"
+                 onchange="onCustomDateChangeOrders()"
+                 class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
+          <div class="text-xs text-[#666] dark:text-[#a09080] mt-1">Formato: gg/mm/aaaa</div>
+        </div>
+      </div>
+      
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold text-[#181311] dark:text-white">Ordini Attivi</h3>
+          <div id="date-display" class="text-sm text-[#666] dark:text-[#a09080]">Oggi</div>
+        </div>
+        <button onclick="loadActiveOrders()" class="text-sm text-primary hover:text-primary/80">
+          <span class="material-symbols-outlined text-sm">refresh</span>
+        </button>
+      </div>
+      <div id="active-orders-list-main" class="space-y-2 max-h-80 overflow-y-auto">
+        <!-- Lista ordini attivi -->
+        <div class="text-center text-[#666] dark:text-[#a09080] py-4">
+          Caricamento ordini...
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Dettagli Ordine Selezionato -->
+  <div class="lg:col-span-2">
+    <div class="bg-white dark:bg-[#2a1f1a] rounded-xl p-6 border border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div id="order-details-container">
+        <!-- Dettagli ordine selezionato -->
+        <div class="text-center text-[#666] dark:text-[#a09080] py-8">
+          Seleziona un ordine dalla lista per vedere i dettagli
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables - orders separated by table
+let tablesOrders = {}; // { tableNumber: { pizzaId: {name, price, quantity, note} } }
+let selectedTable = null;
+let menuData = [];
+let selectedDateFilter = 'custom'; // Semplece data specifica
+
+// Date management functions
+function onCustomDateInput(input) {
+  // Formatta automaticamente l'input mentre l'utente digita
+  let value = input.value.replace(/\D/g, ''); // Rimuove tutto tranne numeri
+  
+  // Aggiunge le barre automaticamente
+  if (value.length >= 2) {
+    value = value.slice(0, 2) + '/' + value.slice(2);
+  }
+  if (value.length >= 5) {
+    value = value.slice(0, 5) + '/' + value.slice(5);
+  }
+  
+  // Limita la lunghezza massima
+  if (value.length > 10) {
+    value = value.slice(0, 10);
+  }
+  
+  input.value = value;
+  
+  // Sincronizza con l'altro input
+  const ordersCustomDate = document.getElementById('custom-date-orders');
+  if (ordersCustomDate) {
+    ordersCustomDate.value = value;
+  }
+}
+
+function onCustomDateChange() {
+  const customDate = document.getElementById('custom-date').value;
+  
+  // Validazione del formato gg/mm/aaaa
+  const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = customDate.match(dateRegex);
+  
+  if (!match) {
+    alert('Formato data non valido. Usa il formato gg/mm/aaaa (es: 11/03/2026)');
+    return;
+  }
+  
+  const [, day, month, year] = match;
+  const dayNum = parseInt(day);
+  const monthNum = parseInt(month);
+  const yearNum = parseInt(year);
+  
+  // Validazione logica della data
+  if (dayNum < 1 || dayNum > 31) {
+    alert('Giorno non valido. Inserisci un valore tra 01 e 31.');
+    return;
+  }
+  
+  if (monthNum < 1 || monthNum > 12) {
+    alert('Mese non valido. Inserisci un valore tra 01 e 12.');
+    return;
+  }
+  
+  if (yearNum < 1900 || yearNum > 2100) {
+    alert('Anno non valido. Inserisci un valore tra 1900 e 2100.');
+    return;
+  }
+  
+  // Validazione mese/giorno specifico
+  const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+  if (dayNum > daysInMonth) {
+    alert(`Il mese ${monthNum} ha solo ${daysInMonth} giorni.`);
+    return;
+  }
+  
+  // Aggiorna il filtro
+  updateDateDisplay();
+  
+  // Sincronizza con l'altro input
+  const ordersCustomDate = document.getElementById('custom-date-orders');
+  if (ordersCustomDate) {
+    ordersCustomDate.value = customDate;
+  }
+}
+
+function convertCustomDateToISO(dateString) {
+  // Converte gg/mm/aaaa in yyyy-mm-dd per il backend
+  const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  
+  const [, day, month, year] = match;
+  return `${year}-${month}-${day}`;
+}
+
+function getDateForFilter() {
+  // Prende la data dall'input corrente
+  const customDate = document.getElementById('custom-date').value || 
+                     document.getElementById('custom-date-orders').value;
+  
+  if (customDate) {
+    return convertCustomDateToISO(customDate);
+  }
+  
+  // Default: oggi
+  return new Date().toISOString().split('T')[0];
+}
+
+function getDateDisplayText() {
+  const customDate = document.getElementById('custom-date').value || 
+                     document.getElementById('custom-date-orders').value;
+  
+  if (customDate) {
+    return customDate;
+  }
+  
+  // Default: oggi
+  return new Date().toLocaleDateString('it-IT');
+}
+
+function updateDateDisplay() {
+  // Aggiorna l'indicatore del periodo nella gestione ordini
+  const dateDisplay = document.getElementById('date-display');
+  if (dateDisplay) {
+    dateDisplay.textContent = getDateDisplayText();
+  }
+  
+  // Ricarica gli ordini attivi con il nuovo filtro
+  if (document.getElementById('active-orders-view').style.display !== 'none') {
+    loadActiveOrders();
+  }
+}
+
+// Initialize table buttons
+function initializeTables() {
+  const tableContainer = document.getElementById('table-selection');
+  tableContainer.innerHTML = '';
+  
+  for (let i = 1; i <= 20; i++) {
+    const button = document.createElement('button');
+    button.className = 'table-btn p-3 rounded-lg border-2 border-[#e5e5e5] dark:border-[#4a3a30] bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white hover:border-primary hover:bg-primary/10 transition-all font-medium';
+    button.textContent = i;
+    button.onclick = () => selectTable(i);
+    tableContainer.appendChild(button);
+  }
+}
+
+// Select table
+function selectTable(tableNumber) {
+  selectedTable = tableNumber;
+  
+  // Update button states
+  document.querySelectorAll('.table-btn').forEach(btn => {
+    if (parseInt(btn.textContent) === tableNumber) {
+      btn.className = 'table-btn p-3 rounded-lg border-2 border-primary bg-primary/20 text-primary font-bold';
+    } else {
+      btn.className = 'table-btn p-3 rounded-lg border-2 border-[#e5e5e5] dark:border-[#4a3a30] bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white hover:border-primary hover:bg-primary/10 transition-all font-medium';
+    }
+  });
+  
+  // Initialize table order if not exists
+  if (!tablesOrders[tableNumber]) {
+    tablesOrders[tableNumber] = {};
+  }
+  
+  // Check if there's already an active order for this table
+  checkExistingOrder(tableNumber);
+  
+  // Update UI - mostra campo persone
+  document.getElementById('selected-table').textContent = `Tavolo ${tableNumber}`;
+  document.getElementById('people-section').style.display = 'block';
+  document.getElementById('confirm-btn').disabled = false;
+  
+  // Add event listener for people count changes
+  document.getElementById('people-count').addEventListener('input', updateOrderTotal);
+  
+  // Load menu for this table
+  loadMenu();
+  document.getElementById('clear-btn').disabled = false;
+  
+  // Update display
+  updateOrderDisplay();
+}
+
+// Check if there's already an active order for this table
+async function checkExistingOrder(tableNumber) {
+  try {
+    const response = await fetch(`/orders/active/${tableNumber}`);
+    if (response.ok) {
+      const existingOrder = await response.json();
+      if (existingOrder && existingOrder.id) {
+        // There's an active order, hide people section
+        document.getElementById('people-section').style.display = 'none';
+        currentOrderId = existingOrder.id;
+        
+        // Load existing order items
+        await loadExistingOrderItems(existingOrder.id);
+        
+        showMessage(`Ordine #${existingOrder.id} già attivo al tavolo ${tableNumber}`, 'info');
+      }
+    }
+  } catch (error) {
+    console.log('No existing order found or error checking:', error);
+    // No existing order, show people section normally
+  }
+}
+
+// Load existing order items
+async function loadExistingOrderItems(orderId) {
+  try {
+    const response = await fetch(`/orders/${orderId}/items`);
+    if (response.ok) {
+      const items = await response.json();
+      
+      // Convert items to our local format
+      tablesOrders[selectedTable] = {};
+      items.forEach(item => {
+        const uniqueItemId = generateOrderItemId(item.pizza_id);
+        tablesOrders[selectedTable][uniqueItemId] = {
+          name: item.pizza_nome,
+          price: item.prezzo_personalizzato || item.prezzo_unitario,
+          originalPrice: item.prezzo_unitario,
+          quantity: item.quantita,
+          note: item.note || '',
+          pizzaId: item.pizza_id,
+          isModified: item.prezzo_personalizzato !== null,
+          modifications: item.note_modifiche ? JSON.parse(item.note_modifiche) : []
+        };
+      });
+      
+      updateOrderDisplay();
+    }
+  } catch (error) {
+    console.error('Error loading existing order items:', error);
+  }
+}
+async function loadMenu() {
+  if (!selectedTable) return;
+  
+  try {
+    const response = await fetch('/orders/menu');
+    const menu = await response.json();
+    menuData = menu;
+    renderMenu();
+  } catch (error) {
+    console.error('Error loading menu:', error);
+    document.getElementById('pizza-menu').innerHTML = `
+      <div class="text-center text-red-500 py-4">
+        Errore nel caricamento del menu
+      </div>
+    `;
+  }
+}
+
+// Render menu with add/remove buttons grouped by category
+function renderMenu() {
+  const menuContainer = document.getElementById('pizza-menu');
+  menuContainer.innerHTML = '';
+  
+  if (!selectedTable) {
+    menuContainer.innerHTML = `
+      <div class="text-center text-[#666] dark:text-[#a09080] py-4">
+        Seleziona un tavolo per iniziare
+      </div>
+    `;
+    return;
+  }
+  
+  // Group menu items by category
+  const categories = ['Antipasti', 'Pizza', 'Bevande', 'Dolci', 'Varie'];
+  
+  categories.forEach(category => {
+    const categoryItems = menuData.filter(item => item.categoria === category);
+    
+    if (categoryItems.length === 0) return;
+    
+    // Sort items by price within each category
+    const sortedItems = categoryItems.sort((a, b) => a.prezzo - b.prezzo);
+    
+    // Create category section
+    const categoryDiv = document.createElement('div');
+    categoryDiv.className = 'mb-4';
+    categoryDiv.innerHTML = `
+      <h5 class="text-sm font-semibold text-[#181311] dark:text-white mb-2 flex items-center gap-1">
+        <span class="material-symbols-outlined text-primary text-sm">
+          ${category === 'Antipasti' ? 'restaurant_menu' : 
+            category === 'Pizza' ? 'local_pizza' : 
+            category === 'Bevande' ? 'local_cafe' : 
+            category === 'Dolci' ? 'cake' : 'more_horiz'}
+        </span>
+        ${category}
+      </h5>
+    `;
+    
+    // Add items in this category
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'space-y-2';
+    
+    sortedItems.forEach(item => {
+      const currentQuantity = tablesOrders[selectedTable][item.id]?.quantity || 0;
+      
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'flex items-center justify-between p-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg hover:bg-[#f8f6f6] dark:hover:bg-[#3d2a22] cursor-pointer';
+      itemDiv.onclick = () => addToOrder(item.id, item.nome, item.prezzo);
+      
+      // Check if item is already in order to show modify button
+      const isInOrder = currentQuantity > 0;
+      
+      console.log(`Item: ${item.nome}, Quantity: ${currentQuantity}, IsInOrder: ${isInOrder}`);
+      
+      // Safe name for JavaScript
+      const safeName = JSON.stringify(item.nome);
+      
+      itemDiv.innerHTML = `
+        <div class="flex-1">
+          <h6 class="font-medium text-[#181311] dark:text-white text-sm">${item.nome}</h6>
+          <p class="text-xs text-[#666] dark:text-[#a09080]">€${parseFloat(item.prezzo).toFixed(2)}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          ${isInOrder ? `
+            <button onclick="event.stopPropagation(); removeFromOrder(${item.id})" class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors" title="Rimuovi">
+              <span class="material-symbols-outlined text-sm">remove</span>
+            </button>
+            <span class="w-7 text-center font-semibold text-[#181311] dark:text-white text-sm">${currentQuantity}</span>
+            <button onclick="event.stopPropagation(); addToOrder(${item.id}, ${safeName}, ${item.prezzo})" class="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors" title="Aggiungi">
+              <span class="material-symbols-outlined text-sm">add</span>
+            </button>
+          ` : `
+            <button onclick="removeFromOrder(${item.id})" class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors ${currentQuantity === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${currentQuantity === 0 ? 'disabled' : ''}">
+              <span class="material-symbols-outlined text-sm">remove</span>
+            </button>
+            <span class="w-7 text-center font-semibold text-[#181311] dark:text-white text-sm">${currentQuantity}</span>
+            <button onclick="addToOrder(${item.id}, ${safeName}, ${item.prezzo})" class="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors">
+              <span class="material-symbols-outlined text-sm">add</span>
+            </button>
+          `}
+        </div>
+      `;
+      itemsContainer.appendChild(itemDiv);
+    });
+    
+    categoryDiv.appendChild(itemsContainer);
+    menuContainer.appendChild(categoryDiv);
+  });
+}
+
+// Order management// Generate unique ID for order items
+function generateOrderItemId(pizzaId) {
+  return `${pizzaId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Add item to order
+function addToOrder(pizzaId, pizzaName, price) {
+  if (!selectedTable) return;
+  
+  // Check if there's already an item with the same pizzaId and no modifications
+  const existingItems = Object.entries(tablesOrders[selectedTable]).filter(([id, item]) => 
+    item.name === pizzaName && !item.isModified
+  );
+  
+  if (existingItems.length > 0) {
+    // Increase quantity of existing unmodified item
+    const [existingId, existingItem] = existingItems[0];
+    existingItem.quantity++;
+    showMessage(`${pizzaName} quantità aumentata!`, 'success');
+  } else {
+    // Create new item with unique ID
+    const uniqueItemId = generateOrderItemId(pizzaId);
+    tablesOrders[selectedTable][uniqueItemId] = {
+      name: pizzaName,
+      price: price,
+      originalPrice: price,
+      quantity: 1,
+      note: '',
+      pizzaId: pizzaId, // Keep original pizzaId for reference
+      isModified: false,
+      modifications: []
+    };
+    
+    showMessage(`${pizzaName} aggiunto all'ordine!`, 'success');
+  }
+  
+  renderMenu(); // Re-render to update quantities
+  updateOrderDisplay();
+}
+
+function removeFromOrder(itemId) {
+  if (!selectedTable || !tablesOrders[selectedTable][itemId]) return;
+  
+  const item = tablesOrders[selectedTable][itemId];
+  item.quantity--;
+  
+  if (item.quantity <= 0) {
+    delete tablesOrders[selectedTable][itemId];
+    showMessage(`${item.name} rimosso dall'ordine`, 'info');
+  } else {
+    showMessage(`${item.name} quantità ridotta!`, 'info');
+  }
+  
+  renderMenu(); // Re-render to update quantities
+  updateOrderDisplay();
+}
+
+function clearCurrentOrder() {
+  if (!selectedTable) return;
+  
+  tablesOrders[selectedTable] = {};
+  renderMenu();
+  updateOrderDisplay();
+  
+  showMessage('Ordine corrente svuotato', 'info');
+}
+
+function updateOrderDisplay() {
+  const orderContainer = document.getElementById('current-order');
+  const totalElement = document.getElementById('order-total');
+  
+  console.log('=== UPDATE ORDER DISPLAY DEBUG ===');
+  console.log('1. selectedTable:', selectedTable);
+  console.log('2. tablesOrders:', tablesOrders);
+  
+  if (!selectedTable) {
+    console.log('3. No table selected, showing empty message');
+    orderContainer.innerHTML = `
+      <div class="text-center py-8 text-[#666] dark:text-[#a09080]">
+        Nessun tavolo selezionato
+      </div>
+    `;
+    totalElement.textContent = '€0.00';
+    return;
+  }
+  
+  const currentOrder = tablesOrders[selectedTable];
+  console.log('4. currentOrder:', currentOrder);
+  console.log('5. currentOrder keys:', currentOrder ? Object.keys(currentOrder) : 'null');
+  console.log('6. currentOrder length:', currentOrder ? Object.keys(currentOrder).length : 0);
+  
+  if (!currentOrder || Object.keys(currentOrder).length === 0) {
+    console.log('7. No items in order, showing empty message');
+    orderContainer.innerHTML = `
+      <div class="text-center py-8 text-[#666] dark:text-[#a09080]">
+        Nessuna pizza nell'ordine. Seleziona dal menu a sinistra.
+      </div>
+    `;
+    totalElement.textContent = '€0.00';
+    return;
+  }
+  
+  console.log('8. Rendering order items...');
+  let html = '';
+  let total = 0;
+  
+  Object.entries(currentOrder).forEach(([itemId, item]) => {
+    const itemTotal = item.price * item.quantity;
+    total += itemTotal;
+    
+    // Safe name for JavaScript
+    const safeName = JSON.stringify(item.name);
+    
+    const noteDisplay = item.note ? `<p class="text-xs text-blue-600 dark:text-blue-400 italic mt-1">📝 ${item.note}</p>` : '';
+    const modificationDisplay = item.isModified ? `<p class="text-xs text-orange-600 dark:text-orange-400 italic mt-1">🔧 Personalizzato</p>` : '';
+    
+    html += `
+      <div class="p-3 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded-lg hover:bg-[#efefef] dark:hover:bg-[#4a3a32] transition-colors cursor-pointer" onclick="openItemDialog('${itemId}')">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h4 class="font-medium text-[#181311] dark:text-white">${item.name}</h4>
+            <div class="flex items-center gap-2 mt-1">
+              <button onclick="event.stopPropagation(); removeFromOrder('${itemId}')" class="w-6 h-6 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors text-xs" title="Rimuovi">−</button>
+              <span class="w-8 text-center font-semibold text-[#181311] dark:text-white text-sm">${item.quantity}</span>
+              <button onclick="event.stopPropagation(); addToOrder(${item.pizzaId}, ${safeName}, ${item.originalPrice})" class="w-6 h-6 rounded bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors text-xs" title="Aggiungi">+</button>
+              <span class="text-sm text-[#666] dark:text-[#a09080] ml-2">€${parseFloat(item.price).toFixed(2)}</span>
+            </div>
+            ${noteDisplay}
+            ${modificationDisplay}
+          </div>
+          <span class="font-semibold text-[#181311] dark:text-white ml-2 whitespace-nowrap">€${parseFloat(itemTotal).toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  });
+  
+  console.log('9. HTML generated, orderContainer children count will be:', Object.keys(currentOrder).length);
+  console.log('10. Total calculated:', total);
+  
+  orderContainer.innerHTML = html;
+  
+  // Calcola il totale con coperto
+  updateOrderTotal(total);
+  
+  console.log('11. Order display updated successfully');
+  console.log('=== END UPDATE ORDER DISPLAY DEBUG ===');
+}
+
+// Update order total with cover charge
+function updateOrderTotal(orderSubtotal = null) {
+  const totalElement = document.getElementById('order-total');
+  const subtotalElement = document.getElementById('order-subtotal');
+  const coverChargeElement = document.getElementById('cover-charge');
+  const costDetailsElement = document.getElementById('cost-details');
+  const peopleDisplayElement = document.getElementById('people-display');
+  
+  // Se non è fornito, calcola il subtotal dall'ordine corrente
+  if (orderSubtotal === null && selectedTable) {
+    const currentOrder = tablesOrders[selectedTable];
+    if (currentOrder && Object.keys(currentOrder).length > 0) {
+      orderSubtotal = 0;
+      Object.entries(currentOrder).forEach(([pizzaId, item]) => {
+        orderSubtotal += parseFloat(item.price) * parseInt(item.quantity);
+      });
+    } else {
+      orderSubtotal = 0;
+    }
+  } else if (orderSubtotal === null) {
+    orderSubtotal = 0;
+  } else {
+    // Assicurati che sia un numero
+    orderSubtotal = parseFloat(orderSubtotal) || 0;
+  }
+  
+  // Calcola il coperto
+  const peopleCount = parseInt(document.getElementById('people-count')?.value || 1);
+  const coverCharge = peopleCount * 2; // 2€ per persona
+  const totalWithCover = orderSubtotal + coverCharge;
+  
+  // Aggiorna UI
+  if (orderSubtotal > 0 || coverCharge > 0) {
+    costDetailsElement.style.display = 'block';
+    subtotalElement.textContent = `€${orderSubtotal.toFixed(2)}`;
+    coverChargeElement.textContent = `€${coverCharge.toFixed(2)}`;
+    peopleDisplayElement.textContent = peopleCount;
+  } else {
+    costDetailsElement.style.display = 'none';
+  }
+  
+  totalElement.textContent = `€${totalWithCover.toFixed(2)}`;
+}
+
+// Dialog per modificare elemento
+let currentEditingItemId = null;
+let currentEditingOrderId = null;
+let ingredientsData = null;
+
+function openItemDialog(itemId) {
+  if (!selectedTable || !tablesOrders[selectedTable][itemId]) return;
+  
+  currentEditingItemId = itemId;
+  const item = tablesOrders[selectedTable][itemId];
+  const itemTotal = item.price * item.quantity;
+  
+  const dialogHTML = `
+    <div id="item-dialog-overlay" class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-[#2a1f1a] rounded-xl shadow-2xl max-w-md w-full border border-[#e5e5e5] dark:border-[#4a3a30] max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-xl font-semibold text-[#181311] dark:text-white">${item.name}</h3>
+            <button onclick="closeItemDialog()" class="text-[#666] dark:text-[#a09080] hover:text-[#181311] dark:hover:text-white">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          
+          <!-- Prezzo e quantità -->
+          <div class="space-y-4 mb-4">
+            <div class="p-3 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded-lg">
+              <p class="text-sm text-[#666] dark:text-[#a09080] mb-1">Prezzo base</p>
+              <p class="text-lg font-semibold text-[#181311] dark:text-white">€${item.originalPrice.toFixed(2)}</p>
+              <p id="personalized-price-display" class="text-sm text-green-600 dark:text-green-400 ${item.isModified ? '' : 'hidden'}">Personalizzato: €<span id="personalized-price-value">${item.price.toFixed(2)}</span></p>
+            </div>
+            
+            <!-- Quantità -->
+            <div>
+              <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Quantità</label>
+              <div class="flex items-center justify-between p-3 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded-lg">
+                <button onclick="decreaseQuantity('${itemId}')" class="w-8 h-8 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors">−</button>
+                <span id="qty-display" class="text-2xl font-bold text-[#181311] dark:text-white">${item.quantity}</span>
+                <button onclick="increaseQuantity('${itemId}')" class="w-8 h-8 rounded bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors">+</button>
+              </div>
+            </div>
+            
+            <!-- Totale elemento -->
+            <div class="p-3 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/30">
+              <p class="text-sm text-[#666] dark:text-[#a09080] mb-1">Totale elemento</p>
+              <p id="item-total-display" class="text-2xl font-bold text-primary">€${parseFloat(itemTotal).toFixed(2)}</p>
+            </div>
+          </div>
+          
+          <!-- Sezione Ingredienti -->
+          <div class="border-t border-[#e5e5e5] dark:border-[#4a3a30] pt-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-medium text-[#181311] dark:text-white">Personalizza Ingredienti</h4>
+              <button onclick="toggleIngredientsSection()" class="text-sm text-primary hover:text-primary/80">
+                <span id="ingredients-toggle-text">Mostra</span>
+                <span class="material-symbols-outlined text-sm" id="ingredients-toggle-icon">expand_more</span>
+              </button>
+            </div>
+            
+            <div id="ingredients-section" class="hidden">
+              <div class="mb-4">
+                <p class="text-sm text-[#666] dark:text-[#a09080] mb-2">Ingredienti attuali:</p>
+                <div id="current-ingredients" class="space-y-2 max-h-32 overflow-y-auto">
+                  <!-- Sarà popolato dinamicamente -->
+                </div>
+              </div>
+              
+              <div class="mb-4">
+                <p class="text-sm text-[#666] dark:text-[#a09080] mb-2">Aggiungi ingredienti:</p>
+                <div id="available-ingredients" class="space-y-2 max-h-32 overflow-y-auto">
+                  <!-- Sarà popolato dinamicamente -->
+                </div>
+              </div>
+              
+              <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Regole Prezzo:</p>
+                <div class="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                  <div>🧀 Formaggi: +€1.50</div>
+                  <div>🥩 Carne: +€2.00</div>
+                  <div>🥬 Verdure: +€1.00</div>
+                  <div>🍅 Salsa: Gratis</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Commento -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-[#181311] dark:text-[#d1c2bc] mb-2">Commento/Note</label>
+            <textarea 
+              id="item-note" 
+              placeholder="Es: Senza cipolla, pochissimo sale, ecc..."
+              class="w-full p-3 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white placeholder-[#a09080] focus:outline-none focus:ring-2 focus:ring-primary"
+              rows="3"
+            >${item.note}</textarea>
+          </div>
+          
+          <!-- Pulsanti azione -->
+          <div class="mt-6 flex gap-2">
+            <button onclick="removeFromOrder('${itemId}'); closeItemDialog();" class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors font-medium">
+              Rimuovi
+            </button>
+            <button onclick="applyIngredientModifications(); closeItemDialog();" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium">
+              Applica Modifiche
+            </button>
+            <button onclick="saveItemNote('${itemId}'); closeItemDialog();" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+              Salva
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', dialogHTML);
+  
+  // Carica dati ingredienti
+  loadIngredientsData();
+  
+  // Imposta note esistenti
+  document.getElementById('item-note').value = item.note;
+  
+  // Close on overlay click
+  document.getElementById('item-dialog-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'item-dialog-overlay') {
+      closeItemDialog();
+    }
+  });
+}
+
+function toggleIngredientsSection() {
+  const section = document.getElementById('ingredients-section');
+  const toggleText = document.getElementById('ingredients-toggle-text');
+  const toggleIcon = document.getElementById('ingredients-toggle-icon');
+  
+  if (section.classList.contains('hidden')) {
+    section.classList.remove('hidden');
+    toggleText.textContent = 'Nascondi';
+    toggleIcon.textContent = 'expand_less';
+  } else {
+    section.classList.add('hidden');
+    toggleText.textContent = 'Mostra';
+    toggleIcon.textContent = 'expand_more';
+  }
+}
+
+async function loadIngredientsData() {
+  try {
+    const item = tablesOrders[selectedTable][currentEditingItemId];
+    
+    // Per ordini esistenti, carica dal database
+    if (currentOrderId) {
+      const response = await fetch(`/api/v1/orders/${currentOrderId}/items/${item.pizzaId}/ingredients`);
+      if (response.ok) {
+        ingredientsData = await response.json();
+      } else {
+        // Fallback: carica ingredienti base se l'ordine non è trovato
+        await loadBaseIngredients();
+      }
+    } else {
+      // Per nuovi ordini, carica ingredienti base
+      await loadBaseIngredients();
+    }
+    
+    renderIngredients();
+  } catch (error) {
+    console.error('Error loading ingredients data:', error);
+    showMessage('Errore caricamento ingredienti', 'error');
+  }
+}
+
+async function loadBaseIngredients() {
+  try {
+    const item = tablesOrders[selectedTable][currentEditingItemId];
+    
+    // Carica tutti gli ingredienti disponibili
+    const allIngredients = await getAvailableIngredients();
+    
+    // Carica il menu item per ottenere ingredienti base
+    const response = await fetch(`/menu/${item.pizzaId}`);
+    const menuItem = await response.json();
+    
+    // Estrai gli ingredienti base del menu item (struttura diversa)
+    const baseIngredients = (menuItem.ingredienti || []).map(ing => ({
+      id: ing.nome,  // Usa il nome come ID temporaneo
+      nome: ing.nome,
+      tipo: ing.ingrediente?.tipo || 'altro',  // Tipo dall'ingrediente nested
+      originale: true
+    }));
+    
+    // Filtra ingredienti disponibili (escludi quelli già base per nome)
+    const availableIngredients = allIngredients.filter(ing => 
+      !baseIngredients.some(base => base.nome === ing.nome)
+    ).map(ing => ({
+      ...ing,
+      originale: false
+    }));
+    
+    ingredientsData = {
+      item_id: null,
+      pizza_id: item.pizzaId,
+      prezzo_base: menuItem.prezzo || 0,
+      prezzo_personalizzato: item.isModified ? item.price : null,
+      current_ingredients: baseIngredients,
+      available_ingredients: availableIngredients,
+      modifications: { aggiunti: [], rimossi: [] }
+    };
+  } catch (error) {
+    console.error('Error loading base ingredients:', error);
+    throw error;
+  }
+}
+
+async function getAvailableIngredients() {
+  try {
+    const response = await fetch('/ingredienti');
+    return await response.json();
+  } catch (error) {
+    console.error('Error loading available ingredients:', error);
+    return [];
+  }
+}
+
+function renderIngredients() {
+  if (!ingredientsData) return;
+  
+  // Renderizza ingredienti attuali
+  const currentContainer = document.getElementById('current-ingredients');
+  currentContainer.innerHTML = '';
+  
+  ingredientsData.current_ingredients.forEach(ing => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-between p-2 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded';
+    div.innerHTML = `
+      <label class="flex items-center cursor-pointer">
+        <input type="checkbox" 
+               class="mr-2" 
+               data-ingredient-id="${ing.id}" 
+               data-ingredient-name="${ing.nome}" 
+               data-ingredient-type="${ing.tipo}"
+               data-is-original="true"
+               checked
+               onchange="handleIngredientChange(this)">
+        <span class="text-sm">${ing.nome}</span>
+        ${ing.originale ? '<span class="text-xs text-[#666] ml-1">(originale)</span>' : ''}
+      </label>
+    `;
+    currentContainer.appendChild(div);
+  });
+  
+  // Renderizza ingredienti disponibili
+  const availableContainer = document.getElementById('available-ingredients');
+  availableContainer.innerHTML = '';
+  
+  ingredientsData.available_ingredients.forEach(ing => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-between p-2 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded';
+    div.innerHTML = `
+      <label class="flex items-center cursor-pointer">
+        <input type="checkbox" 
+               class="mr-2" 
+               data-ingredient-id="${ing.id}" 
+               data-ingredient-name="${ing.nome}" 
+               data-ingredient-type="${ing.tipo}"
+               data-is-original="false"
+               onchange="handleIngredientChange(this)">
+        <span class="text-sm">${ing.nome}</span>
+        <span class="text-xs text-[#666] ml-1">(+€${getIngredientPrice(ing.tipo)})</span>
+      </label>
+    `;
+    availableContainer.appendChild(div);
+  });
+}
+
+function getIngredientPrice(type) {
+  const prices = {
+    'formaggio': 1.5,
+    'carne': 2.0,
+    'verdura': 1.0,
+    'salsa': 0.0,
+    'altro': 1.0
+  };
+  return prices[type] || prices['altro'];
+}
+
+function handleIngredientChange(checkbox) {
+  // Aggiorna UI in tempo reale
+  calculateNewPrice();
+}
+
+function calculateNewPrice() {
+  if (!ingredientsData) return;
+  
+  let priceChange = 0;
+  const checkboxes = document.querySelectorAll('#ingredients-section input[type="checkbox"]');
+  
+  checkboxes.forEach(checkbox => {
+    const isOriginal = checkbox.dataset.isOriginal === 'true';
+    const isChecked = checkbox.checked;
+    const type = checkbox.dataset.ingredientType;
+    const price = getIngredientPrice(type);
+    
+    if (isOriginal && !isChecked) {
+      // Ingrediente originale rimosso
+      priceChange -= price * 0.5; // Rimozione costa metà dell'aggiunta
+    } else if (!isOriginal && isChecked) {
+      // Ingrediente aggiunto
+      priceChange += price;
+    }
+  });
+  
+  const basePrice = ingredientsData.prezzo_base || ingredientsData.current_ingredients?.[0]?.prezzo || 0;
+  const newPrice = basePrice + priceChange;
+  
+  // Aggiorna UI
+  const personalizedDisplay = document.getElementById('personalized-price-display');
+  const personalizedValue = document.getElementById('personalized-price-value');
+  
+  if (priceChange !== 0) {
+    personalizedDisplay.classList.remove('hidden');
+    personalizedValue.textContent = newPrice.toFixed(2);
+    
+    // Aggiorna anche il totale
+    const quantity = parseInt(document.getElementById('qty-display').textContent);
+    const totalElement = document.getElementById('item-total-display');
+    totalElement.textContent = `€${(newPrice * quantity).toFixed(2)}`;
+  } else {
+    personalizedDisplay.classList.add('hidden');
+  }
+}
+
+async function applyIngredientModifications() {
+  if (!ingredientsData || !currentEditingItemId) return;
+  
+  try {
+    const checkboxes = document.querySelectorAll('#ingredients-section input[type="checkbox"]');
+    const addedIngredients = [];
+    const removedIngredients = [];
+    
+    checkboxes.forEach(checkbox => {
+      const isOriginal = checkbox.dataset.isOriginal === 'true';
+      const isChecked = checkbox.checked;
+      const ingredientId = parseInt(checkbox.dataset.ingredientId);
+      
+      if (isOriginal && !isChecked) {
+        removedIngredients.push(ingredientId);
+      } else if (!isOriginal && isChecked) {
+        addedIngredients.push(ingredientId);
+      }
+    });
+    
+    // Applica modifiche
+    if (currentOrderId) {
+      // Ordine esistente nel database
+      const item = tablesOrders[selectedTable][currentEditingItemId];
+      const response = await fetch(`/api/v1/orders/${currentOrderId}/items/${item.pizzaId}/modify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          added_ingredients: addedIngredients,
+          removed_ingredients: removedIngredients
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        showMessage('Modifiche applicate con successo', 'success');
+        
+        // Aggiorna prezzo locale
+        item.price = result.prezzo_personalizzato;
+        item.isModified = true;
+        item.modifications = result.modifiche;
+        updateOrderDisplay();
+      } else {
+        throw new Error('Errore applicazione modifiche');
+      }
+    } else {
+      // Nuovo ordine - aggiorna solo localmente
+      const basePrice = ingredientsData.prezzo_base || 0;
+      let priceChange = 0;
+      
+      addedIngredients.forEach(id => {
+        const checkbox = document.querySelector(`input[data-ingredient-id="${id}"]`);
+        if (checkbox) {
+          priceChange += getIngredientPrice(checkbox.dataset.ingredientType);
+        }
+      });
+      
+      removedIngredients.forEach(id => {
+        const checkbox = document.querySelector(`input[data-ingredient-id="${id}"]`);
+        if (checkbox) {
+          priceChange -= getIngredientPrice(checkbox.dataset.ingredientType) * 0.5;
+        }
+      });
+      
+      const newPrice = basePrice + priceChange;
+      
+      // Aggiorna prezzo locale
+      const item = tablesOrders[selectedTable][currentEditingItemId];
+      item.price = newPrice;
+      item.isModified = true;
+      item.modifications = addedIngredients.length > 0 || removedIngredients.length > 0 ? 
+        [...addedIngredients.map(id => '+' + id), ...removedIngredients.map(id => '-' + id)] : [];
+      
+      // Aggiorna anche ingredientsData per futuri riferimenti
+      ingredientsData.prezzo_personalizzato = newPrice;
+      
+      updateOrderDisplay();
+      showMessage('Modifiche applicate localmente', 'success');
+    }
+    
+  } catch (error) {
+    console.error('Error applying modifications:', error);
+    showMessage('Errore applicazione modifiche', 'error');
+  }
+}
+
+function increaseQuantity(itemId) {
+  if (!selectedTable || !tablesOrders[selectedTable][itemId]) return;
+  
+  tablesOrders[selectedTable][itemId].quantity++;
+  
+  const item = tablesOrders[selectedTable][itemId];
+  const itemTotal = item.price * item.quantity;
+  
+  document.getElementById('qty-display').textContent = item.quantity;
+  document.getElementById('item-total-display').textContent = `€${itemTotal.toFixed(2)}`;
+}
+
+function decreaseQuantity(itemId) {
+  if (!selectedTable || !tablesOrders[selectedTable][itemId]) return;
+  
+  if (tablesOrders[selectedTable][itemId].quantity > 1) {
+    tablesOrders[selectedTable][itemId].quantity--;
+    
+    const item = tablesOrders[selectedTable][itemId];
+    const itemTotal = item.price * item.quantity;
+    
+    document.getElementById('qty-display').textContent = item.quantity;
+    document.getElementById('item-total-display').textContent = `€${itemTotal.toFixed(2)}`;
+  }
+}
+
+function saveItemNote(itemId) {
+  if (!selectedTable || !tablesOrders[selectedTable][itemId]) return;
+  
+  const note = document.getElementById('item-note').value;
+  tablesOrders[selectedTable][itemId].note = note;
+  
+  updateOrderDisplay();
+}
+
+function closeItemDialog() {
+  const dialog = document.getElementById('item-dialog-overlay');
+  if (dialog) {
+    dialog.remove();
+  }
+}
+
+// Confirm order
+async function confirmOrder() {
+  if (!selectedTable || !tablesOrders[selectedTable] || Object.keys(tablesOrders[selectedTable]).length === 0) {
+    alert('Seleziona un tavolo e aggiungi almeno una pizza all\'ordine!');
+    return;
+  }
+  
+  const orderData = {
+    numero_tavolo: selectedTable,
+    numero_persone: parseInt(document.getElementById('people-count').value || 1),
+    dettagli: Object.entries(tablesOrders[selectedTable]).map(([itemId, item]) => ({
+      pizza_id: parseInt(item.pizzaId),
+      quantita: item.quantity,
+      note: item.note || '',
+      prezzo_personalizzato: item.isModified ? item.price : null,
+      modifiche: item.modifications || []
+    }))
+  };
+  
+  try {
+    const response = await fetch('/orders/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+        
+      // Mostra feedback appropriato
+      if (result.merged) {
+        // Ordine unito a esistente
+        alert(`✅ ${result.message}\n\nL'ordine è stato unito all'ordine esistente al tavolo ${result.numero_tavolo}.\nTotale aggiornato: €${result.totale.toFixed(2)}`);
+      } else {
+        // Nuovo ordine creato
+        alert(`✅ ${result.message}\n\nOrdine #${result.id} creato per il tavolo ${result.numero_tavolo}.\nTotale: €${result.totale.toFixed(2)}`);
+      }
+        
+      // Pulisci l'ordine corrente
+      clearCurrentOrder();
+        
+      // Se siamo nella vista gestione ordini, ricarica la lista
+      if (document.getElementById('active-orders-view').style.display !== 'none') {
+        loadActiveOrders();
+      }
+        
+    } else {
+      const error = await response.json();
+      alert('Errore: ' + (error.detail || 'Errore durante la conferma'));
+    }
+  } catch (error) {
+    console.error('Error confirming order:', error);
+    alert('Errore durante la conferma dell\'ordine');
+  }
+}
+
+// Gestione vista Ordini Attivi
+let currentOrderId = null;
+let activeOrders = [];
+
+function showActiveOrders() {
+  // Nascondi vista nuovo ordine
+  document.getElementById('new-order-view').style.display = 'none';
+  // Mostra vista ordini attivi
+  document.getElementById('active-orders-view').style.display = 'grid';
+  
+  // Aggiorna stato link sidebar
+  document.getElementById('new-order-link').className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white transition-colors';
+  document.getElementById('active-orders-link').className = 'flex items-center gap-3 p-2 rounded-lg bg-[#e5e5e5] dark:bg-[#4a3a30] text-primary font-medium transition-colors';
+  
+  loadActiveOrders();
+}
+
+function showNewOrder() {
+  // Mostra vista nuovo ordine
+  document.getElementById('new-order-view').style.display = 'grid';
+  // Nascondi vista ordini attivi
+  document.getElementById('active-orders-view').style.display = 'none';
+  
+  // Aggiorna stato link sidebar
+  document.getElementById('new-order-link').className = 'flex items-center gap-3 p-2 rounded-lg bg-[#e5e5e5] dark:bg-[#4a3a30] text-primary font-medium transition-colors';
+  document.getElementById('active-orders-link').className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white transition-colors';
+}
+
+async function loadActiveOrders() {
+  try {
+    const dateFilter = getDateForFilter();
+    const response = await fetch(`/orders?date=${dateFilter}`);
+    const orders = await response.json();
+    activeOrders = orders;
+    
+    renderActiveOrdersList();
+    updateSidebarActiveOrders();
+  } catch (error) {
+    console.error('Error loading active orders:', error);
+    document.getElementById('active-orders-list-main').innerHTML = `
+      <div class="text-center text-red-500 py-4">
+        Errore nel caricamento degli ordini
+      </div>
+    `;
+  }
+}
+
+function renderActiveOrdersList() {
+  const container = document.getElementById('active-orders-list-main');
+  
+  if (activeOrders.length === 0) {
+    container.innerHTML = `
+      <div class="text-center text-[#666] dark:text-[#a09080] py-4">
+        Nessun ordine attivo
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  activeOrders.forEach(order => {
+    const orderDiv = document.createElement('div');
+    orderDiv.className = 'p-3 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg cursor-pointer hover:bg-[#f8f6f6] dark:hover:bg-[#3d2a22] transition-colors';
+    orderDiv.onclick = () => selectOrder(order.id);
+    
+    const orderTime = new Date(order.data_ora).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const itemsCount = order.dettagli.reduce((sum, item) => sum + item.quantita, 0);
+    const servedCount = order.dettagli.filter(item => item.served).reduce((sum, item) => sum + item.quantita, 0);
+    
+    orderDiv.innerHTML = `
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <div class="font-semibold text-[#181311] dark:text-white">Tavolo ${order.numero_tavolo}</div>
+          <div class="text-xs text-[#666] dark:text-[#a09080]">${orderTime}</div>
+          <div class="text-xs text-[#666] dark:text-[#a09080] font-medium">${order.numero_persone || 1} persone</div>
+          ${order.dettagli.length > 5 ? '<div class="text-xs text-orange-500 dark:text-orange-400">Ordine esteso</div>' : ''}
+        </div>
+        <div class="text-right">
+          <div class="text-lg font-bold text-primary">€${parseFloat(order.totale).toFixed(2)}</div>
+          <div class="text-xs text-[#666] dark:text-[#a09080]">${servedCount}/${itemsCount} serviti</div>
+          ${order.coperto > 0 ? `
+            <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              Coperto: €${parseFloat(order.coperto).toFixed(2)}
+            </div>
+            <div class="text-xs text-[#999] dark:text-[#a09080]">
+              Articoli: €${(parseFloat(order.totale) - parseFloat(order.coperto || 0)).toFixed(2)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+        <div class="bg-green-500 h-2 rounded-full transition-all" style="width: ${itemsCount > 0 ? (servedCount / itemsCount) * 100 : 0}%"></div>
+      </div>
+    `;
+    
+    container.appendChild(orderDiv);
+  });
+}
+
+function updateSidebarActiveOrders() {
+  const container = document.getElementById('active-orders-list');
+  
+  if (activeOrders.length === 0) {
+    container.innerHTML = `
+      <div class="text-center text-[#999] dark:text-[#a09080] text-xs py-4">
+        Nessun ordine attivo
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  activeOrders.forEach(order => {
+    const orderDiv = document.createElement('div');
+    orderDiv.className = 'p-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded cursor-pointer hover:bg-[#f8f6f6] dark:hover:bg-[#3d2a22] transition-colors';
+    orderDiv.onclick = () => selectOrder(order.id);
+    
+    const itemsCount = order.dettagli.reduce((sum, item) => sum + item.quantita, 0);
+    const servedCount = order.dettagli.filter(item => item.served).reduce((sum, item) => sum + item.quantita, 0);
+    
+    orderDiv.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="text-sm font-medium text-[#181311] dark:text-white">Tavolo ${order.numero_tavolo}</div>
+          <div class="text-xs text-[#666] dark:text-[#a09080] font-medium">${order.numero_persone || 1} persone</div>
+          <div class="text-xs text-[#666] dark:text-[#a09080]">${servedCount}/${itemsCount} serviti</div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-bold text-primary">€${parseFloat(order.totale).toFixed(2)}</div>
+          ${order.coperto > 0 ? `
+            <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              Coperto: €${parseFloat(order.coperto).toFixed(2)}
+            </div>
+            <div class="text-xs text-[#999] dark:text-[#a09080]">
+              Articoli: €${(parseFloat(order.totale) - parseFloat(order.coperto || 0)).toFixed(2)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(orderDiv);
+  });
+}
+
+async function selectOrder(orderId) {
+  currentOrderId = orderId;
+  
+  try {
+    const response = await fetch(`/orders/${orderId}`);
+    const order = await response.json();
+    
+    renderOrderDetails(order);
+  } catch (error) {
+    console.error('Error loading order details:', error);
+  }
+}
+
+function renderOrderDetails(order) {
+  const container = document.getElementById('order-details-container');
+  
+  const orderTime = new Date(order.data_ora).toLocaleString('it-IT');
+  const itemsCount = order.dettagli.reduce((sum, item) => sum + item.quantita, 0);
+  const servedCount = order.dettagli.filter(item => item.served).reduce((sum, item) => sum + item.quantita, 0);
+  
+  container.innerHTML = `
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-xl font-bold text-[#181311] dark:text-white">Ordine #${order.id}</h3>
+          <p class="text-sm text-[#666] dark:text-[#a09080]">Tavolo ${order.numero_tavolo} • ${order.numero_persone || 1} persone • ${orderTime}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold text-primary">€${order.totale.toFixed(2)}</div>
+          <div class="text-sm text-[#666] dark:text-[#a09080]">${servedCount}/${itemsCount} serviti</div>
+          ${order.coperto > 0 ? `<div class="text-xs text-blue-600 dark:text-blue-400">Coperto: €${order.coperto.toFixed(2)}</div>` : ''}
+        </div>
+      </div>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="font-semibold text-[#181311] dark:text-white">Articoli da servire</h4>
+          <button onclick="markAllAsServed(${order.id})" class="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors">
+            Segna tutto servito
+          </button>
+        </div>
+        
+        <div class="space-y-2">
+          ${order.dettagli.map(item => {
+            const isModified = item.prezzo_personalizzato !== null;
+            const prezzoUsato = item.prezzo_personalizzato || item.prezzo_unitario;
+            return `
+            <div class="flex items-center justify-between p-3 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-lg ${item.served ? 'bg-green-50 dark:bg-green-900/20' : ''}">
+              <div class="flex items-center gap-3">
+                <input type="checkbox" 
+                       id="served-${order.id}-${item.pizza_id}" 
+                       ${item.served ? 'checked' : ''}
+                       onchange="toggleItemServed(${order.id}, ${item.pizza_id}, this.checked)"
+                       class="w-5 h-5 text-green-600 rounded focus:ring-green-500">
+                <label for="served-${order.id}-${item.pizza_id}" class="flex-1 cursor-pointer">
+                  <div class="font-medium text-[#181311] dark:text-white ${item.served ? 'line-through opacity-60' : ''}">
+                    ${item.quantita}x ${item.pizza_nome}
+                    ${isModified ? `<span class="ml-2 px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300 text-xs rounded-full font-medium">🔧 Modificato</span>` : ''}
+                  </div>
+                  ${item.note ? `<div class="text-sm text-[#666] dark:text-[#a09080]">Note: ${item.note}</div>` : ''}
+                  ${isModified ? `<div class="text-sm text-orange-600 dark:text-orange-400">Prezzo personalizzato: €${parseFloat(prezzoUsato).toFixed(2)}</div>` : ''}
+                </label>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-[#181311] dark:text-white">€${parseFloat(item.subtotale).toFixed(2)}</div>
+                <div class="text-xs text-[#666] dark:text-[#a09080]">€${parseFloat(prezzoUsato).toFixed(2)} cad.</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        </div>
+      </div>
+      
+      <!-- Riepilogo Costi -->
+      <div class="mb-6 p-4 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded-lg border border-[#e5e5e5] dark:border-[#4a3a30]">
+        <h5 class="font-semibold text-[#181311] dark:text-white mb-3">Riepilogo Costi</h5>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-[#666] dark:text-[#a09080]">Articoli ordinati:</span>
+            <span class="text-[#181311] dark:text-white">€${(order.totale - (order.coperto || 0)).toFixed(2)}</span>
+          </div>
+          ${order.numero_persone ? `
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-[#666] dark:text-[#a09080]">Coperto (2€ x ${order.numero_persone} persone):</span>
+              <span class="text-[#181311] dark:text-white">€${(order.coperto || 0).toFixed(2)}</span>
+            </div>
+          ` : ''}
+          <div class="border-t border-[#e5e5e5] dark:border-[#4a3a30] pt-2 mt-2">
+            <div class="flex justify-between items-center">
+              <span class="font-semibold text-[#181311] dark:text-white">Totale:</span>
+              <span class="text-lg font-bold text-primary">€${order.totale.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex gap-3">
+        <button onclick="processPayment(${order.id}, 'carta')" class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium">
+          💳 Pagamento con Carta
+        </button>
+        <button onclick="processPayment(${order.id}, 'contanti')" class="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors font-medium">
+          💰 Pagamento Contanti
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function toggleItemServed(orderId, itemId, served) {
+  try {
+    const response = await fetch(`/orders/${orderId}/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ served })
+    });
+    
+    if (response.ok) {
+      // Ricarica l'ordine
+      await selectOrder(orderId);
+      // Aggiorna la lista
+      await loadActiveOrders();
+    }
+  } catch (error) {
+    console.error('Error updating item status:', error);
+  }
+}
+
+async function markAllAsServed(orderId) {
+  try {
+    const response = await fetch(`/orders/${orderId}/mark-all-served`, {
+      method: 'PATCH'
+    });
+    
+    if (response.ok) {
+      await selectOrder(orderId);
+      await loadActiveOrders();
+    }
+  } catch (error) {
+    console.error('Error marking all as served:', error);
+  }
+}
+
+async function addItemsToOrder(orderId) {
+  // TODO: Implementare aggiunta articoli a ordine esistente
+  alert('Funzionalità di aggiunta articoli in sviluppo');
+}
+
+async function processPayment(orderId, metodo) {
+  if (confirm(`Confermi pagamento ${metodo === 'carta' ? 'con carta' : 'contanti'} per questo ordine?`)) {
+    try {
+      const response = await fetch(`/orders/${orderId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          metodo_pagamento: metodo,
+          note: `Pagamento ${metodo === 'carta' ? 'con carta' : 'contanti'}`
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Mostra conferma pagamento
+        document.getElementById('order-details-container').innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-4xl mb-4">${metodo === 'carta' ? '💳' : '💰'}</div>
+            <div class="text-xl font-bold text-green-500 mb-2">Pagamento Completato!</div>
+            <div class="text-sm text-[#666] dark:text-[#a09080] mb-4">
+              Ordine #${result.ordine.id} • Tavolo ${result.ordine.numero_tavolo}<br>
+              Importo: €${result.ordine.totale.toFixed(2)}<br>
+              Metodo: ${metodo === 'carta' ? 'Carta di Credito' : 'Contanti'}
+            </div>
+            <div class="text-xs text-[#999] dark:text-[#a09080]">
+              ID Pagamento: #${result.pagamento.id}<br>
+              ${new Date(result.pagamento.data_ora).toLocaleString('it-IT')}
+            </div>
+          </div>
+        `;
+        
+        // Ricarica la lista ordini attivi dopo 2 secondi
+        setTimeout(() => {
+          loadActiveOrders();
+        }, 2000);
+        
+      } else {
+        const error = await response.json();
+        alert('Errore: ' + (error.detail || 'Errore durante il pagamento'));
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      alert('Errore durante il pagamento');
+    }
+  }
+}
+
+async function completeOrder(orderId) {
+  if (confirm('Sei sicuro di voler completare questo ordine?')) {
+    try {
+      const response = await fetch(`/orders/${orderId}/complete`, {
+        method: 'PATCH'
+      });
+      
+      if (response.ok) {
+        await loadActiveOrders();
+        document.getElementById('order-details-container').innerHTML = `
+          <div class="text-center text-green-500 py-8">
+            <div class="text-2xl mb-2">✓</div>
+            <div class="font-semibold">Ordine completato con successo</div>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error completing order:', error);
+    }
+  }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  initializeTables();
+  // Mostra di default la vista nuovo ordine
+  showNewOrder();
+  // Imposta data di oggi come default
+  const today = new Date();
+  const todayFormatted = today.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/');
+  document.getElementById('custom-date').value = todayFormatted;
+  document.getElementById('custom-date-orders').value = todayFormatted;
+  // Aggiorna display data
+  updateDateDisplay();
+  // Carica comunque gli ordini attivi per la sidebar
+  loadActiveOrders();
+});
+</script>
+{% endblock %}

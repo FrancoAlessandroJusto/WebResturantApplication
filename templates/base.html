@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html class="light" lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>{% block title %}PizzaAdmin - Sistema Gestione Ristorante{% endblock %}</title>
+  
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ec4913",
+            "background-light": "#f8f6f6",
+            "background-dark": "#221510",
+          },
+          fontFamily: { "display": ["Be Vietnam Pro"] },
+          borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        },
+      },
+    };
+  </script>
+  
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .pizza-item {
+      transition: all 0.2s ease;
+    }
+    .pizza-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-[#181311] dark:text-[#d1c2bc]">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <div class="w-64 bg-[#f4f1f0] dark:bg-[#3d2a22] p-6 border-r border-[#e5e5e5] dark:border-[#4a3a30]">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold text-[#181311] dark:text-white">PizzaAdmin</h1>
+        <p class="text-sm text-[#666] dark:text-[#a09080]">Sistema Gestione Ristorante</p>
+      </div>
+      
+      {% block sidebar %}
+      <!-- Sidebar content will be overridden by child templates -->
+      {% endblock %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1">
+      <!-- Header -->
+      <header class="bg-white dark:bg-[#2a1f1a] border-b border-[#e5e5e5] dark:border-[#4a3a30] px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <h2 id="page-title" class="text-xl font-semibold text-[#181311] dark:text-white">{% block page_title %}Dashboard{% endblock %}</h2>
+          </div>
+          <div class="flex items-center gap-4">
+            <!-- Mode Navigation -->
+            <nav class="flex items-center gap-6">
+              <a class="{% if request.url.path == '/mgmt/ui' %}text-black font-bold{% else %}text-black font-medium{% endif %} text-sm leading-normal pb-1 hover:text-primary transition-colors no-underline" href="/mgmt/ui">Menu</a>
+              <a class="{% if request.url.path == '/orders/ui' %}text-black font-bold{% else %}text-black font-medium{% endif %} text-sm leading-normal pb-1 hover:text-primary transition-colors no-underline" href="/orders/ui">Ordini</a>
+              <a class="{% if request.url.path == '/analytics/ui' %}text-black font-bold{% else %}text-black font-medium{% endif %} text-sm leading-normal pb-1 hover:text-primary transition-colors no-underline" href="/analytics/ui">Statistiche</a>
+              
+              <!-- Torna al Menu quando sei in Ingredienti -->
+              {% if request.url.path == '/ingredienti/ui' %}
+                <a href="/mgmt/ui" class="ml-4 px-3 py-1 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                  <span class="material-symbols-outlined text-sm">arrow_back</span>
+                  Torna al Menu
+                </a>
+              {% endif %}
+            </nav>
+            
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-[#f4f1f0] dark:hover:bg-[#3d2a22] transition-colors">
+              <span class="material-symbols-outlined">dark_mode</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="p-6">
+        {% block content %}
+        <!-- Page content will be overridden by child templates -->
+        {% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Common JavaScript -->
+  <script src="/static/js/common.js"></script>
+  <script>
+    // Funzioni legacy per compatibilità
+    function toggleDarkMode() {
+      if (typeof UIHelper !== 'undefined') {
+        UIHelper.toggleDarkMode();
+      }
+    }
+    
+    function showMessage(message, type = 'info') {
+      if (typeof UIHelper !== 'undefined') {
+        UIHelper.showMessage(message, type);
+      } else {
+        // Fallback se UIHelper non è ancora caricato
+        console.warn('UIHelper not available, using fallback showMessage');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 ${
+          type === 'success' ? 'bg-green-500 text-white' : 
+          type === 'error' ? 'bg-red-500 text-white' : 
+          'bg-blue-500 text-white'
+        }`;
+        messageDiv.textContent = message;
+        document.body.appendChild(messageDiv);
+        setTimeout(() => {
+          if (messageDiv.parentNode) {
+            messageDiv.parentNode.removeChild(messageDiv);
+          }
+        }, 3000);
+      }
+    }
+  </script>
+  
+  {% block scripts %}
+  <!-- Additional scripts will be added by child templates -->
+  {% endblock %}
+</body>
+</html>

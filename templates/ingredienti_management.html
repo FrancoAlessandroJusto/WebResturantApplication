@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}PizzaAdmin - Ingredienti a Magazzino{% endblock %}
+{% block page_title %}Ingredienti a Magazzino{% endblock %}
+
+<style>
+#magazzino-link {
+  color: #ec4913 !important;
+  font-weight: 500 !important;
+  background-color: #e5e5e5 !important;
+}
+
+.dark #magazzino-link {
+  background-color: #4a3a30 !important;
+}
+
+#menu-link {
+  color: #181311 !important;
+}
+
+.dark #menu-link {
+  color: white !important;
+}
+</style>
+
+{% block sidebar %}
+<div class="space-y-6">
+  <!-- Sezione Gestione -->
+  <div>
+    <h3 class="text-sm font-semibold text-[#666] dark:text-[#a09080] mb-3">GESTIONE</h3>
+    <ul class="space-y-2">
+      <li>
+        <a href="/mgmt/ui" id="menu-link" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white transition-colors" style="color: #181311;">
+          <span class="material-symbols-outlined">restaurant_menu</span>
+          <span>Menu</span>
+        </a>
+      </li>
+      <li>
+        <a href="/ingredienti/ui" id="magazzino-link" class="flex items-center gap-3 p-2 rounded-lg bg-[#e5e5e5] dark:bg-[#4a3a30] text-primary font-medium transition-colors" style="color: #ec4913 !important; font-weight: 500 !important;">
+          <span class="material-symbols-outlined">inventory_2</span>
+          <span>Magazzino</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-7xl">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-[#181311] dark:text-white mb-2">Ingredienti a Magazzino</h1>
+            <p class="text-[#666] dark:text-[#a09080]">Aggiungi e modifica gli ingredienti del magazzino</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Add Ingredient Form -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-[#3d2a22] rounded-lg shadow-sm border border-[#e5e5e5] dark:border-[#4a3a30] p-6">
+                    <h2 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Aggiungi Ingrediente</h2>
+                    
+                    <form id="create-ingredient-form" class="space-y-4">
+                        <!-- Name -->
+                        <div>
+                            <label for="ing-nome" class="block text-sm font-medium text-[#181311] dark:text-white mb-2">Nome</label>
+                            <input type="text" id="ing-nome" required
+                                   class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                   placeholder="Nome ingrediente">
+                        </div>
+
+                        <!-- Type -->
+                        <div>
+                            <label for="ing-tipo" class="block text-sm font-medium text-[#181311] dark:text-white mb-2">Tipo</label>
+                            <select id="ing-tipo" required
+                                    class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">Seleziona tipo...</option>
+                                <option value="verdura">Verdura</option>
+                                <option value="formaggio">Formaggio</option>
+                                <option value="carne">Carne</option>
+                                <option value="base">Base</option>
+                                <option value="salsa">Salsa</option>
+                                <option value="premade">Premade</option>
+                                <option value="dolci">Dolci</option>
+                            </select>
+                        </div>
+
+                        <!-- Costo Unitario -->
+                        <div>
+                            <label for="ing-costo" class="block text-sm font-medium text-[#181311] dark:text-white mb-2">Costo Unitario (€)</label>
+                            <input type="number" id="ing-costo" step="0.01" min="0" required
+                                   class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                   placeholder="0.00">
+                        </div>
+
+                        <!-- Unità di Misura e Quantità di Riferimento -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="ing-unita" class="block text-sm font-medium text-[#181311] dark:text-white mb-2">Unità di Misura</label>
+                                <select id="ing-unita" required
+                                        class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                    <option value="l">l</option>
+                                    <option value="ml">ml</option>
+                                    <option value="pz">pz</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="ing-quantita" class="block text-sm font-medium text-[#181311] dark:text-white mb-2">Quantità di Riferimento</label>
+                                <input type="number" id="ing-quantita" step="0.1" min="0.1" required
+                                       class="w-full px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                       placeholder="Es: 100 per kg, 1 per pz">
+                            </div>
+                        </div>
+
+                        <!-- Hidden field for ingredient ID (for edit mode) -->
+                        <input type="hidden" id="ing-id" value="">
+
+                        <!-- Submit Button -->
+                        <div>
+                            <button type="submit" id="submit-btn"
+                                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                Aggiungi Ingrediente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ingredients List -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-[#3d2a22] rounded-lg shadow-sm border border-[#e5e5e5] dark:border-[#4a3a30] p-6">
+                    <h2 class="text-lg font-semibold text-[#181311] dark:text-white mb-4">Ingredienti Disponibili</h2>
+                    
+                    <!-- Filter Dropdown -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-[#181311] dark:text-white mb-2">
+                            Filtro per tipo
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <select id="tipo-filtro" onchange="filterByType()"
+                                    class="flex-1 px-3 py-2 border border-[#e5e5e5] dark:border-[#4a3a30] rounded-md bg-white dark:bg-[#3d2a22] text-[#181311] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">Tutti i tipi</option>
+                                <option value="verdura">Verdura</option>
+                                <option value="formaggio">Formaggio</option>
+                                <option value="carne">Carne</option>
+                                <option value="base">Base</option>
+                                <option value="salsa">Salsa</option>
+                                <option value="premade">Premade</option>
+                                <option value="dolci">Dolci</option>
+                                <option value="altro">Altro</option>
+                            </select>
+                            <button onclick="clearFilter()" 
+                                    class="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm">
+                                Pulisci
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Ingredients List -->
+                    <div id="ingredients-list" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- Ingredients will be loaded here -->
+                        <div class="text-center text-[#666] dark:text-[#a09080] py-8 text-sm">
+                            Caricamento ingredienti...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let ingredients = [];
+let filteredByType = null;
+
+// Load ingredients from API
+async function loadIngredients() {
+  try {
+    console.log('Loading ingredients...');
+    const response = await fetch('/ingredienti');
+    ingredients = await response.json();
+    console.log('Ingredients loaded:', ingredients);
+    renderIngredients();
+  } catch (error) {
+    console.error('Error loading ingredients:', error);
+  }
+}
+
+// Render ingredients list
+function renderIngredients() {
+  const listContainer = document.getElementById('ingredients-list');
+  listContainer.innerHTML = '';
+  
+  if (ingredients.length === 0) {
+    listContainer.innerHTML = '<div class="text-center text-[#666] dark:text-[#a09080] py-8 text-sm">Nessun ingrediente disponibile</div>';
+    return;
+  }
+  
+  // Filter ingredients by type if filter is set
+  let ingredientsToRender = ingredients;
+  if (filteredByType) {
+    ingredientsToRender = ingredients.filter(ing => ing.tipo === filteredByType);
+  }
+  
+  if (ingredientsToRender.length === 0) {
+    listContainer.innerHTML = '<div class="text-center text-[#666] dark:text-[#a09080] py-8 text-sm">Nessun ingrediente di questo tipo</div>';
+    return;
+  }
+  
+  ingredientsToRender.forEach(ing => {
+    const ingDiv = document.createElement('div');
+    ingDiv.className = 'flex items-center justify-between p-3 bg-[#f8f6f6] dark:bg-[#3d2a22] rounded border border-[#e5e5e5] dark:border-[#4a3a30]';
+    ingDiv.innerHTML = `
+      <div class="flex-1">
+        <h4 class="font-medium text-[#181311] dark:text-white">${ing.nome}</h4>
+        <div class="text-sm text-[#666] dark:text-[#a09080]">
+          <span class="inline-block px-2 py-1 bg-primary/20 text-primary rounded-full text-xs mr-2">
+            ${ing.tipo}
+          </span>
+          <span class="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+            €${ing.costo_unitario.toFixed(2)} / ${ing.quantita_riferimento || 1} ${ing.unita_riferimento}
+          </span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="editIngredient(${ing.id})" 
+                class="size-8 rounded-lg bg-[#f4f1f0] dark:bg-[#3d2a22] text-[#181311] dark:text-white flex items-center justify-center hover:bg-primary hover:text-white transition-colors" 
+                title="Modifica">
+          <span class="material-symbols-outlined text-sm">edit</span>
+        </button>
+        <button type="button" onclick="deleteIngredient(${ing.id})" 
+                class="size-8 rounded-lg bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-800 transition-colors" 
+                title="Elimina">
+          <span class="material-symbols-outlined text-sm">delete</span>
+        </button>
+      </div>
+    `;
+    listContainer.appendChild(ingDiv);
+  });
+}
+
+// Filter ingredients by type
+function filterByType() {
+  const filterSelect = document.getElementById('tipo-filtro');
+  const selectedType = filterSelect.value;
+  
+  if (selectedType === '') {
+    filteredByType = null;
+  } else {
+    filteredByType = selectedType;
+  }
+  
+  renderIngredients();
+}
+
+// Clear filter
+function clearFilter() {
+  filteredByType = null;
+  document.getElementById('tipo-filtro').value = '';
+  renderIngredients();
+}
+
+// (form listener will be attached in DOMContentLoaded)
+
+// Edit ingredient
+async function editIngredient(ingId) {
+  try {
+    const response = await fetch(`/ingredienti/${ingId}`);
+    const ingredient = await response.json();
+    
+    // Populate form with ingredient data
+    document.getElementById('ing-id').value = ingredient.id;
+    document.getElementById('ing-nome').value = ingredient.nome;
+    document.getElementById('ing-tipo').value = ingredient.tipo;
+    document.getElementById('ing-costo').value = ingredient.costo_unitario;
+    document.getElementById('ing-unita').value = ingredient.unita_riferimento;
+    document.getElementById('ing-quantita').value = ingredient.quantita_riferimento || 1;
+    
+    // Change button text to "Aggiorna"
+    document.getElementById('submit-btn').textContent = 'Aggiorna Ingrediente';
+    
+    // Scroll to form
+    document.getElementById('create-ingredient-form').scrollIntoView({ behavior: 'smooth' });
+    
+    showMessage('Ingrediente caricato per la modifica', 'success');
+  } catch (error) {
+    console.error('Error loading ingredient:', error);
+    showMessage('Errore durante il caricamento', 'error');
+  }
+}
+
+// Delete ingredient
+async function deleteIngredient(ingId) {
+  if (!confirm('Sei sicuro di voler eliminare questo ingrediente?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/ingredienti/${ingId}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      await loadIngredients();
+      showMessage('Ingrediente eliminato con successo!', 'success');
+    } else {
+      const error = await response.json();
+      showMessage(error.detail || 'Errore durante l\'eliminazione', 'error');
+    }
+  } catch (error) {
+    console.error('Error deleting ingredient:', error);
+    UIHelper.showMessage('Errore durante l\'eliminazione', 'error');
+  }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadIngredients();
+  
+  // Attach form listener
+  const createForm = document.getElementById('create-ingredient-form');
+  if (createForm) {
+    createForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const ingId = document.getElementById('ing-id').value;
+      const nome = document.getElementById('ing-nome').value;
+      const tipo = document.getElementById('ing-tipo').value;
+      const costo = parseFloat(document.getElementById('ing-costo').value);
+      const unita = document.getElementById('ing-unita').value;
+      const quantita = parseFloat(document.getElementById('ing-quantita').value);
+      
+      const isEdit = !!ingId; // true se c'è un ID, false altrimenti
+      
+      try {
+        const url = isEdit ? `/ingredienti/${ingId}` : '/ingredienti';
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            nome: nome,
+            tipo: tipo,
+            costo_unitario: costo,
+            unita_riferimento: unita,
+            quantita_riferimento: quantita
+          })
+        });
+        
+        if (response.ok) {
+          // Reset form and hidden ID field
+          this.reset();
+          document.getElementById('ing-id').value = '';
+          document.getElementById('submit-btn').textContent = 'Aggiungi Ingrediente';
+          
+          // Reload ingredients
+          await loadIngredients();
+          
+          const message = isEdit 
+            ? 'Ingrediente aggiornato con successo!' 
+            : 'Ingrediente aggiunto con successo!';
+          showMessage(message, 'success');
+        } else {
+          const error = await response.json();
+          showMessage(error.detail || 'Errore durante l\'operazione', 'error');
+        }
+      } catch (error) {
+        console.error('Error in form submission:', error);
+        showMessage('Errore durante l\'operazione', 'error');
+      }
+    });
+  }
+
+  // Set active page state in sidebar
+  document.getElementById('menu-link').className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-[#e5e5e5] dark:hover:bg-[#4a3a30] text-[#181311] dark:text-white transition-colors';
+  document.getElementById('magazzino-link').className = 'flex items-center gap-3 p-2 rounded-lg bg-[#e5e5e5] dark:bg-[#4a3a30] text-primary font-medium transition-colors';
+});
+</script>
+{% endblock %}

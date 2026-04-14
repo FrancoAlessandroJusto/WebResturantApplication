@@ -1,0 +1,134 @@
+Requisiti:
+pip install fastapi uvicorn
+python -m pip install python-multipart jinja2 fastapi uvicorn
+
+Apertura server:
+
+cd "C:\Users\aless\Desktop\Nap2.0\New"
+python -m uvicorn main:app --reload --port 8000
+start "http://127.0.0.1:8000/mgmt/ui"
+(chiusura con ctrl c)
+
+Opening:
+python -m uvicorn main:app --reload --port 8000
+http://localhost:8000/mgmt/ui
+
+Struttura Progetto Attuale:
+├── main.py                    # Main entry point - starts the web server
+├── db.py                      # Database layer - handles SQLite operations  
+├── models.py                   # Data models (Ingrediente, MenuItem, etc.)
+├── schemas.py                  # Pydantic validation schemas
+├── routes/                     # Modular routing structure
+│   ├── ui/                     # HTML pages - serves web interface
+│   │   ├── management.py        # UI Modalità Gestione
+│   │   ├── ingredienti.py       # UI Gestione Ingredienti
+│   │   ├── orders.py           # UI Modalità Ordini
+│   │   └── analytics.py        # UI Modalità Analytics
+│   └── api/                    # JSON API - handles data operations
+│       ├── menu.py             # API CRUD Menu Items
+│       ├── ingredienti.py       # API CRUD Ingredienti
+│       ├── orders.py           # API Gestione Ordini
+│       └── analytics.py        # API Dati Analytics
+├── templates/
+│   └── management.html          # Main web interface template
+└── pizzeria.db                # SQLite database file
+
+L'applicazione è divisa in tre modalità operative ognuna con responsabilità precise.
+
+Per via delle esigenze dei camerieri e del proprietario del ristorante l'applicazione deve essere in grado, durante l'esecuzione, di aggiungere/modificare/eliminare il menù (il menù cambia, i prezzi cambiano, gli ingredienti cambiano, i costi cambiano).
+
+Per questo motivo i dati non devono essere costanti nel codice ma vivono nel database, il codice deve fornire solo regole, flussi e controlli
+
+Modalità dell'applicazione
+
+1. Modalità Taking Order (Cameriere)
+
+Scopo: prendere e gestire ordini dei clienti.
+
+Caratteristiche:
+
+.selezione del tavolo
+.aggiunta/rimozione prodotti dal menù
+.modifica quantità in tempo reale
+.inserimento commenti personalizzati (es. "senza mozzarella")
+.ordine persistente finché il tavolo è aperto
+.invio dell'ordine alla cucina
+.stampa tramite stampante Bluetooth
+
+Accesso: http://localhost:8000/orders/ui
+
+2. Modalità Management (Manager)
+
+Scopo: gestire il menù e la struttura dei prodotti
+
+Caratteristiche:
+
+.aggiunta/rimozione/modifica pizze
+.modifica prezzi
+.attivazione/disattivazione prodotti
+.gestione ingredienti
+.definizione delle ricette (ingredienti + grammi)
+
+Accesso: http://localhost:8000/mgmt/ui
+
+3. Modalità Proprietario (Owner)
+
+Scopo: analisi economica e controllo produzione
+
+Caratteristiche:
+
+.calcolo costo di produzione per pizza
+.confronto prezzo di vendita vs costi produzione
+.calcolo guadagni lordi e netti
+.analisi vendite per periodo
+.gestione magazzino ingredienti
+.alert per scorte basse
+.inserimento acquisti ingredienti
+
+Accesso: http://localhost:8000/analytics/ui
+
+ PROBLEMI RISOLTI (Data: 7 Marzo 2026):
+
+1.  Database Schema Rifatto:
+   - Tabella 'ingredienti' completa con tipi, costi, unità di misura
+   - Tabella 'menu_items' (evoluzione di 'pizze') più generica
+   - Tabella 'menu_item_ingredienti' per ricette molti-a-molti
+   - Sistema di migrazione automatica per database esistenti
+
+2.  Bug Critico 'unita_misura' vs 'unita_riferimento':
+   - Corretta incoerenza tra database e models
+   - Allineato tutti i riferimenti in models.py, db.py, template HTML
+   - Sistema ora coerente e funzionante
+
+3.  Architettura Modulare Migliorata:
+   - Separazione netta tra API e UI routes
+   - Rimozione API duplicate (ingredienti_new.py → ingredienti.py)
+   - Struttura pulita e manutenibile
+
+4.  Validazione Dati Robusta:
+   - Case-insensitive per nomi duplicati
+   - Categorie validate
+   - Soft delete (attiva=0) invece di eliminazione fisica
+
+5.  Sistema di Installazione e Avvio:
+   - Python 3.14.3 funzionante
+   - Dipendenze installate (FastAPI, Uvicorn, Jinja2, etc.)
+   - Server avviabile su http://127.0.0.1:8000
+
+ ACCESSO RAPIDO SISTEMA:
+- Homepage: http://127.0.0.1:8000
+- Modalità Gestione: http://127.0.0.1:8000/mgmt/ui
+- Modalità Ordini: http://127.0.0.1:8000/orders/ui  
+- Modalità Analytics: http://127.0.0.1:8000/analytics/ui
+- Documentazione API: http://127.0.0.1:8000/docs
+
+ COMANDI AVVIO:
+cd "C:\Users\aless\Desktop\Nap2.0\New"
+python -m uvicorn main:app --reload --port 8000
+
+ SVILUPPI FUTURI:
+1. Gestione avanzata magazzino
+2. Sistema autenticazione utenti
+3. Stampa comande cucina
+4. Reportistica avanzata
+5. Integrazione pagamenti elettronici

@@ -1,0 +1,363 @@
+# CODE REVIEW E MAPPA FUNZIONI - NAP2.0 PIZZERIA MANAGEMENT SYSTEM
+# Generato il: 2026-03-14
+# Revisione completa del codebase e mappatura delle interazioni
+
+========================================
+INDICE DELLA DOCUMENTAZIONE
+========================================
+
+1. ARCHITETTURA GENERALE
+2. STRUTTURA DEL DATABASE
+3. MODELLI DI DATI
+4. API ROUTES - FUNZIONI E INTERAZIONI
+5. UI ROUTES - INTERFACCE WEB
+6. SERVIZI ESTERNI
+7. PROBLEMI IDENTIFICATI E RACCOMANDAZIONI
+8. MAPPA DELLE INTERAZIONI FUNZIONALI
+
+========================================
+1. ARCHITETTURA GENERALE
+========================================
+
+L'applicazione segue un'architettura modulare ben strutturata:
+
+main.py (Entry Point)
+├── FastAPI application setup
+├── Database initialization (init_db)
+├── Router registration (API + UI)
+└── Application lifecycle management
+
+Core Modules:
+├── core/database.py: Gestione centralizzata database SQLite
+├── models.py: Data models (Ingrediente, MenuItem, IngredienteQuantita)
+├── schemas.py: Pydantic validation schemas
+└── services/: Servizi esterni (print_service)
+
+Routes Structure:
+├── routes/api/: API REST endpoints (JSON)
+└── routes/ui/: Web interface endpoints (HTML)
+
+========================================
+2. STRUTTURA DEL DATABASE
+========================================
+
+Tabelle principali:
+- ingredienti: Gestione ingredienti con costi e unità di misura
+- menu_items: Articoli del menu (pizze, bevande, etc.)
+- menu_item_ingredienti: Tabella di collegamento molti-a-molti
+- ordini: Gestione ordini clienti
+- ordine_dettagli: Dettagli degli ordini
+
+Caratteristiche chiave:
+- Soft delete (campo attiva) invece di eliminazione fisica
+- Vincoli CHECK per validazione dati
+- Foreign keys con CASCADE
+- Indici per performance
+
+========================================
+3. MODELLI DI DATI
+========================================
+
+Ingrediente Class:
+- Proposito: Rappresenta ingredienti con costi e unità
+- Metodi principali: get_all(), create(), from_db(), to_dict()
+- Interazioni: Usato da MenuItem e routes API
+
+MenuItem Class:
+- Proposito: Rappresenta articoli del menu con ingredienti
+- Metodi principali: get_all(), create(), from_db(), to_dict()
+- Interazioni: Compone IngredienteQuantita
+
+IngredienteQuantita Class:
+- Proposito: Collega ingredienti con quantità specifiche
+- Metodi principali: to_dict()
+- Interazioni: Componente di MenuItem
+
+========================================
+4. API ROUTES - FUNZIONI E INTERAZIONI
+========================================
+
+/routes/api/ingredienti.py:
+├── GET /ingredienti: list_ingredienti()
+│   ├── Input: Nessuno
+│   ├── Output: List[dict] ingredienti attivi
+│   ├── Interazioni: Ingrediente.get_all()
+│   └── Validazione: Error handling con HTTPException
+
+├── GET /ingredienti/{id}: get_ingrediente()
+│   ├── Input: ingrediente_id (int)
+│   ├── Output: dict singolo ingrediente
+│   ├── Interazioni: Ingrediente.get_all() + filtro
+│   └── Validazione: 404 se non trovato
+
+├── POST /ingredienti: create_ingrediente()
+│   ├── Input: dict con dati ingrediente
+│   ├── Output: dict ingrediente creato
+│   ├── Interazioni: Ingrediente.create()
+│   └── Validazione: Nome obbligatorio, duplicati case-insensitive
+
+├── PUT /ingredienti/{id}: update_ingrediente()
+│   ├── Input: id + dict dati aggiornati
+│   ├── Output: dict ingrediente aggiornato
+│   ├── Interazioni: Database diretto (UPDATE)
+│   └── Validazione: Esistenza, duplicati escludendo se stesso
+
+└── DELETE /ingredienti/{id}: delete_ingrediente()
+    ├── Input: ingrediente_id (int)
+    ├── Output: messaggio conferma
+    ├── Interazioni: Soft delete (attiva=0)
+    └── Validazione: Esistenza pre-eliminazione
+
+/routes/api/menu.py:
+├── GET /menu: list_menu_items()
+│   ├── Input: Nessuno
+│   ├── Output: List[dict] menu items con ingredienti
+│   ├── Interazioni: MenuItem.get_all()
+│   └── Validazione: Error handling generico
+
+├── GET /menu/{id}: get_menu_item()
+│   ├── Input: item_id (int)
+│   ├── Output: dict singolo menu item
+│   ├── Interazioni: MenuItem.get_all() + filtro
+│   └── Validazione: 404 se non trovato
+
+├── POST /menu: create_menu_item()
+│   ├── Input: dict con nome, prezzo, categoria, ingredienti
+│   ├── Output: dict menu item creato
+│   ├── Interazioni: MenuItem.create()
+│   └── Validazione: Campi obbligatori, categoria valida, duplicati
+
+├── PUT /menu/{id}: update_menu_item()
+│   ├── Input: id + dict dati aggiornati
+│   ├── Output: messaggio conferma
+│   ├── Interazioni: Database diretto (UPDATE + DELETE/INSERT ingredienti)
+│   └── Validazione: Esistenza, gestione ingredienti opzionale
+
+└── DELETE /menu/{id}: delete_menu_item()
+    ├── Input: item_id (int)
+    ├── Output: messaggio conferma
+    ├── Interazioni: Soft delete (attiva=0)
+    └── Validazione: Esistenza pre-eliminazione
+
+/routes/api/orders.py (parziale):
+├── GET /orders/menu: get_menu()
+│   ├── Input: Nessuno
+│   ├── Output: List[dict] menu per ordini
+│   ├── Interazioni: Database diretto (SELECT menu_items)
+│   └── Validazione: Solo items attivi
+
+[Altre funzioni orders.py analizzate in dettaglio separate]
+
+========================================
+5. UI ROUTES - INTERFACCE WEB
+========================================
+
+/routes/ui/management.py:
+├── GET /mgmt/ui: mgmt_ui()
+│   ├── Input: Request object
+│   ├── Output: HTMLResponse con management.html
+│   ├── Interazioni: MenuItem.get_all() o fallback DB diretto
+│   └── Validazione: Try-catch con fallback
+
+├── POST /mgmt/ui/items/create: mgmt_ui_create()
+│   ├── Input: Form data (nome, prezzo, categoria)
+│   ├── Output: HTMLResponse con messaggio
+│   ├── Interazioni: Database diretto (INSERT)
+│   └── Validazione: IntegrityError per duplicati
+
+└── DELETE /mgmt/items/{id}: delete_menu_item()
+    ├── Input: item_id (int)
+    ├── Output: JSON response
+    ├── Interazioni: Soft delete (attiva=0)
+    └── Validazione: Esistenza pre-eliminazione
+
+/routes/ui/ingredienti_management.py:
+├── Gestione UI ingredienti
+└── Interazioni simili a management.py ma per ingredienti
+
+/routes/ui/orders.py:
+├── Interfaccia presa ordini camerieri
+└── Integrazione con API orders
+
+/routes/ui/analytics.py:
+├── Dashboard analisi per proprietario
+└── Funzioni di reporting
+
+========================================
+6. SERVIZI ESTERNI
+========================================
+
+/services/print_service.py:
+├── PrintService class: Gestione stampe ordini
+├── PrinterStatus enum: Stati stampante
+├── OrderStatus enum: Stati ordine
+├── PrintJob dataclass: Job di stampa
+└── Funzionalità: Preparazione dati, coda stampa, Bluetooth
+
+Integrazioni:
+- Importato opzionale in orders.py
+- Fallback se non disponibile
+- Supporto stampanti termiche POS
+
+========================================
+7. PROBLEMI IDENTIFICATI E RACCOMANDAZIONI
+========================================
+
+PROBLEMI CRITICI:
+
+1. Gestione Connessioni Database:
+   - PROBLEMA: Connessioni aperte manualmente senza context manager
+   - RISCHIO: Memory leaks, connessioni non chiuse in errori
+   - RACCOMANDAZIONE: Usare sempre DatabaseManager.get_connection()
+
+2. Validazione Dati Incoerente:
+   - PROBLEMA: Alcuni endpoint usano Pydantic, altri dict generici
+   - RISCHIO: Errori di validazione, sicurezza
+   - RACCOMANDAZIONE: Standardizzare su Pydantic per tutti gli input
+
+3. Error Handling Non Uniforme:
+   - PROBLEMA: Try-catch diversi, alcuni con print() altri con logging
+   - RISCHIO: Debug difficile, tracce incomplete
+   - RACCOMANDAZIONE: Standardizzare su logging.py
+
+4. SQL Injection Parziale:
+   - PROBLEMA: Query parametrizzate ma con string concatenation in alcuni punti
+   - RISCHIO: Sicurezza
+   - RACCOMANDAZIONE: Verificare tutte le query
+
+PROBLEMI DI PERFORMANCE:
+
+1. N+1 Query Problem:
+   - PROBLEMA: MenuItem.get_all() esegue query per ogni item
+   - RISCHIO: Scalabilità con molti menu items
+   - RACCOMANDAZIONE: JOIN query ottimizzate
+
+2. Mancanza Indici:
+   - PROBLEMA: Query su campi frequenti senza indici
+   - RISCHIO: Lentezza con dati crescenti
+   - RACCOMANDAZIONE: Aggiungere indici su nome, categoria
+
+PROBLEMI DI ARCHITETTURA:
+
+1. Logica Business in Models:
+   - PROBLEMA: Models contengono logica database
+   - RISCHIO: Violazione Single Responsibility
+   - RACCOMANDAZIONE: Separare Repository layer
+
+2. Mancanza Dependency Injection:
+   - PROBLEMA: Dipendenze hard-coded
+   - RISCHIO: Test difficili, accoppiamento forte
+   - RACCOMANDAZIONE: Implementare DI container
+
+PROBLEMI MINORI:
+
+1. Commenti in Italiano/Inglese misto
+2. Logging non strutturato
+3. Mancanza di test unitari
+4. Configurazione hard-coded
+
+========================================
+8. MAPPA DELLE INTERAZIONI FUNZIONALI
+========================================
+
+FLUSSO GESTIONE MENU:
+
+1. UI Management (/mgmt/ui):
+   ├── GET: mgmt_ui() → MenuItem.get_all() → Database
+   ├── POST: mgmt_ui_create() → Database INSERT
+   └── DELETE: delete_menu_item() → Database UPDATE (soft delete)
+
+2. API Menu (/api/menu):
+   ├── GET: list_menu_items() → MenuItem.get_all()
+   ├── POST: create_menu_item() → MenuItem.create()
+   ├── PUT: update_menu_item() → Database diretto
+   └── DELETE: delete_menu_item() → Database UPDATE
+
+FLUSSO GESTIONE INGREDIENTI:
+
+1. API Ingredienti (/api/ingredienti):
+   ├── GET: list_ingredienti() → Ingrediente.get_all()
+   ├── POST: create_ingrediente() → Ingrediente.create()
+   ├── PUT: update_ingrediente() → Database UPDATE
+   └── DELETE: delete_ingrediente() → Database UPDATE
+
+FLUSSO ORDINI:
+
+1. UI Orders (/orders/ui):
+   ├── GET: Interfaccia cameriere
+   └── POST: create_order() → API orders
+
+2. API Orders (/api/orders):
+   ├── GET: get_menu() → Database SELECT
+   ├── POST: create_order() → Database INSERT
+   └── GET: get_orders() → Database SELECT
+
+FLUSSO ANALYTICS:
+
+1. UI Analytics (/analytics/ui):
+   └── GET: Dashboard → API analytics
+
+2. API Analytics (/api/analytics):
+   ├── GET: sales_data() → Database query complesse
+   ├── GET: cost_analysis() → Calcoli costi
+   └── GET: inventory_status() → Stato magazzino
+
+INTERAZIONI CRUCIALI:
+
+1. MenuItem ↔ Ingrediente:
+   - MenuItem usa IngredienteQuantita
+   - IngredienteQuantita compone Ingrediente
+   - Relazione molti-a-molti tramite database
+
+2. Models ↔ Database:
+   - Ingrediente.get_all() → SELECT ingredienti
+   - MenuItem.get_all() → SELECT menu_items + JOIN ingredienti
+   - Models gestiscono proprio CRUD
+
+3. API ↔ Models:
+   - API routes chiamano methods dei models
+   - Models gestiscono persistenza
+   - API gestiscono validazione e HTTP
+
+4. UI ↔ API:
+   - UI routes usano templates Jinja2
+   - Chiamate AJAX alle API routes
+   - Rendering HTML con dati dalle API
+
+5. Print Service Integration:
+   - Orders API usa print_service (opzionale)
+   - Fallback se servizio non disponibile
+   - Gestione coda di stampa
+
+========================================
+RACCOMANDAZIONI PRIORITARIE
+========================================
+
+IMMEDIATE:
+1. Sistemare gestione connessioni database
+2. Standardizzare validazione input con Pydantic
+3. Implementare logging strutturato
+
+CORTO TERMINE:
+1. Ottimizzare query N+1
+2. Aggiungere indici database
+3. Separare repository layer
+
+MEDIO TERMINE:
+1. Implementare dependency injection
+2. Aggiungere test unitari
+3. Documentazione API completa
+
+LUNGO TERMINE:
+1. Refactoring architettura layer
+2. Sistema di configurazione
+3. Monitoring e metrics
+
+========================================
+FINE DOCUMENTAZIONE
+========================================
+
+Questo documento fornisce una mappa completa delle funzionalità del sistema Nap2.0,
+le loro interazioni e i problemi identificati durante la revisione del codice.
+Aggiornare regolarmente per mantenere la documentazione sincronizzata con
+l'evoluzione del codebase.
