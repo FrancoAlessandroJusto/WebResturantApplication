@@ -5,10 +5,11 @@ import sqlite3
 
 from core.database import DatabaseManager
 from models import MenuItem, Ingrediente
+from schemas import MenuItemCreate, MenuItemUpdate, MenuItemOut
 
 router = APIRouter(prefix="/menu", tags=["menu"])
 
-@router.get("", response_model=List[dict])
+@router.get("", response_model=List[MenuItemOut])
 def list_menu_items():
     """
     Restituisce tutti gli articoli del menù attivi con ingredienti
@@ -16,7 +17,7 @@ def list_menu_items():
     items = MenuItem.get_all()
     return [item.to_dict() for item in items]
 
-@router.get("/{item_id}", response_model=dict)
+@router.get("/{item_id}", response_model=MenuItemOut)
 def get_menu_item(item_id: int):
     """
     Restituisce un singolo articolo del menù
@@ -30,24 +31,15 @@ def get_menu_item(item_id: int):
     return item.to_dict()
 
 @router.post("", response_model=dict)
-def create_menu_item(item_data: dict):
+def create_menu_item(item_data: MenuItemCreate):
     """
     Crea un nuovo articolo nel menù con ingredienti
     """
-    required_fields = ['nome', 'prezzo', 'categoria']
-    for field in required_fields:
-        if field not in item_data:
-            raise HTTPException(status_code=400, detail=f"Campo '{field}' obbligatorio")
-    
-    categorie_valide = ['Antipasti', 'Pizza', 'Bevande', 'Dolci', 'Varie']
-    if item_data['categoria'] not in categorie_valide:
-        raise HTTPException(status_code=400, detail="Categoria non valida")
-    
     try:
-        nome = item_data['nome'].strip()
-        prezzo = float(item_data['prezzo'])
-        categoria = item_data['categoria']
-        ingredienti_selezionati = item_data.get('ingredienti', [])
+        nome = item_data.nome.strip()
+        prezzo = item_data.prezzo
+        categoria = item_data.categoria.value
+        ingredienti_selezionati = item_data.ingredienti or []
         
         # Controlla se il nome esiste già (case insensitive)
         with DatabaseManager.get_connection() as conn:
@@ -82,7 +74,7 @@ def create_menu_item(item_data: dict):
         raise HTTPException(status_code=500, detail=f"Errore durante la creazione: {str(e)}")
 
 @router.put("/{item_id}", response_model=dict)
-def update_menu_item(item_id: int, item_data: dict):
+def update_menu_item(item_id: int, item_data: MenuItemUpdate):
     """
     Aggiorna un articolo esistente nel menù
     """
@@ -102,22 +94,31 @@ def update_menu_item(item_id: int, item_data: dict):
             conn.close()
             raise HTTPException(status_code=404, detail="Articolo non trovato")
         
-        # Aggiorna i dati base
-        conn.execute(
-            "UPDATE menu_items SET nome = ?, prezzo = ?, categoria = ? WHERE id = ?",
-            (item_data.get('nome', ''), item_data.get('prezzo', 0), item_data.get('categoria', ''), item_id)
-        )
+        # Prepara i valori aggiornati mantenendo quelli attuali
+        nome = item_data.nome
+        prezzo = item_data.prezzo
+        categoria = item_data.categoria.value if item_data.categoria is not None else None
+
+        if nome is not None:
+            nome = nome.strip()
+
+        # Aggiorna i campi solo se forniti, altrimenti si mantengono invariati
+        if nome is not None or prezzo is not None or categoria is not None:
+            conn.execute(
+                "UPDATE menu_items SET nome = COALESCE(NULLIF(?, ''), nome), prezzo = COALESCE(?, prezzo), categoria = COALESCE(NULLIF(?, ''), categoria) WHERE id = ?",
+                (nome, prezzo, categoria, item_id)
+            )
         
         # Gestione ingredienti (se presenti)
-        if 'ingredienti' in item_data:
+        if item_data.ingredienti is not None:
             # Rimuovi ingredienti esistenti
             conn.execute("DELETE FROM menu_item_ingredienti WHERE menu_item_id = ?", (item_id,))
             
             # Aggiungi nuovi ingredienti
-            for ing in item_data['ingredienti']:
+            for ing in item_data.ingredienti:
                 conn.execute(
                     "INSERT INTO menu_item_ingredienti (menu_item_id, ingrediente_id, quantita) VALUES (?, ?, ?)",
-                    (item_id, ing.get('ingrediente_id', 0), ing.get('quantita', 0))
+                    (item_id, ing.ingrediente_id, ing.quantita)
                 )
         
         conn.commit()

@@ -1,38 +1,42 @@
 
 New/
-├── 📁 core/                    # Componenti core del sistema
-│   └── database.py            # DatabaseManager centralizzato
-├── 📁 models/                  # Modelli dati (DataClasses)
-│   └── (vuoto - models.py in root)
-├── 📁 routes/                  # Rotte API e UI
-│   ├── 📁 api/                 # Endpoints REST API
-│   │   ├── analytics.py        # Statistiche e analytics
-│   │   ├── ingredienti.py      # Gestione ingredienti
-│   │   ├── menu.py             # Gestione menu pizze
-│   │   ├── orders.py           # Gestione ordini
-│   │   └── order_modifications.py # Modifiche ordini
-│   └── 📁 ui/                  # Pagine HTML/interfacce
-│       ├── analytics.py        # Pagina statistiche
+├── core/                    # Componenti core del sistema
+│   └── database.py          # DatabaseManager centralizzato
+├── routes/                  # Rotte API e UI
+│   ├── api/                 # Endpoints REST API
+│   │   ├── analytics.py     # Statistiche e analytics
+│   │   ├── ingredienti.py   # Gestione ingredienti
+│   │   ├── ingredienti_new.py # Variante API ingredienti
+│   │   ├── menu.py          # Gestione menu pizze
+│   │   ├── order_modifications.py # Modifiche ordini
+│   │   └── orders.py        # Gestione ordini
+│   └── ui/                  # Pagine HTML/interfacce
+│       ├── analytics.py     # Pagina statistiche
 │       ├── ingredienti_management.py # Gestione ingredienti UI
-│       ├── management.py       # Dashboard management
-│       └── orders.py           # Gestione ordini UI
-├── 📁 services/                # Servizi esterni
-│   └── print_service.py       # Stampa scontrini
-├── 📁 templates/               # Template HTML
-│   ├── analytics.html          # Pagina analytics
-│   ├── base.html               # Template base
+│       ├── management.py    # Dashboard management
+│       └── orders.py        # Gestione ordini UI
+├── services/                # Servizi esterni
+│   └── print_service.py     # Stampa scontrini
+├── templates/               # Template HTML
+│   ├── analytics.html       # Pagina analytics
+│   ├── base.html            # Template base
 │   ├── ingredienti_management.html # Gestione ingredienti
-│   ├── management.html         # Dashboard
-│   └── orders.html             # Gestione ordini
-├── 📁 tests/                   # Test ufficiali
-│   └── test_api.py             # Test API
-├── 📁 tests_archive/           # Test e script non essenziali
-│   └── (tutti i file test_*.py e script vari)
-├── 📄 main.py                  # Entry point FastAPI
-├── 📄 models.py                # DataClasses (Ingrediente, Pizza, etc.)
-├── 📄 schemas.py               # Pydantic models per validazione
-└── 📄 (altri file di configurazione)
-
+│   ├── management.html      # Dashboard
+│   └── orders.html          # Gestione ordini
+├── static/                  # Asset frontend
+│   ├── css/
+│   └── js/
+├── tests/                   # Test ufficiali
+│   └── test_api.py          # Test API
+├── tests_archive/           # Test e script storici
+├── main.py                  # Entry point FastAPI
+├── models.py                # Data classes per dominio
+├── schemas.py               # Pydantic schemas
+├── test_api_ingredienti.py  # Test API ingredienti
+├── test_api_ingredienti_minimal.py
+├── test_requirements.txt    # Dipendenze di test
+├── verify_structure.py      # Verifica struttura progetto
+└── pizzeria.db              # Database SQLite
 
 Stili di Programmazione Utilizzati
 
@@ -43,7 +47,7 @@ class Ingrediente:
     id: int = field(default=None)
     nome: str = field(default=None)
     tipo: str = 'altro'
-    
+
     @classmethod
     def from_db(cls, row: sqlite3.Row) -> 'Ingrediente':
         """Crea oggetto da riga database"""
@@ -52,10 +56,12 @@ class Ingrediente:
 
 ### 2. **Pydantic Schemas** (schemas.py)
 ```python
-class PizzaCreate(BaseModel):
-    nome: str = Field(min_length=1)
-    prezzo: float = Field(ge=0)
-    ingredienti: List[int] = Field(default_factory=list)
+class IngredienteCreate(BaseModel):
+    nome: str = Field(min_length=1, max_length=100)
+    tipo: str = Field(default='altro')
+    costo_unitario: float = Field(default=0.0, ge=0)
+    unita_riferimento: str = Field(default='pz')
+    quantita_riferimento: float = Field(default=1.0, gt=0)
 ```
 
 ### 3. **Router Pattern** (routes/api/*.py)
@@ -103,20 +109,17 @@ Pattern Architetturali
 ### 1. **MVC-like Structure**
 Models (DataClasses) ↔ API Routes (Controllers) ↔ Templates (Views)
 
-
 ### 2. **Repository Pattern**
 ```python
-# In models.py
 @classmethod
 def get_all(cls) -> List['Ingrediente']:
     conn = get_conn()
-    rows = conn.execute("SELECT * FROM ingredienti WHERE attiva = 1").fetchall()
+    rows = conn.execute("SELECT * FROM ingredienti WHERE attiva = 1 ORDER BY nome").fetchall()
     return [cls.from_db(row) for row in rows]
 ```
 
 ### 3. **Service Layer Pattern**
 ```python
-# In services/print_service.py
 class PrintService:
     def print_order(self, order_data: dict) -> bool:
         # Logica di stampa
@@ -124,11 +127,10 @@ class PrintService:
 
 ### 4. **Factory Pattern**
 ```python
-# In models.py
 @classmethod
 def from_db(cls, row: sqlite3.Row) -> 'Ingrediente':
-    return cls(**row_dict)
-
+    return cls(**dict(row))
+```
 
 Flusso Dati Tipico
 1. **Request** → FastAPI Router
@@ -138,27 +140,23 @@ Flusso Dati Tipico
 5. **Model Creation** → DataClass from_db()
 6. **Response** → JSON serialization
 
-
 Frontend Architecture
 
 **Component-based UI**
 - HTML templates con Jinja2
 - JavaScript vanilla per interattività
-- TailwindCSS per styling
+- CSS e asset statici per styling
 
 **State Management**
-javascript
-// Global state
+```javascript
 let tablesOrders = {};
 let selectedTable = null;
 let currentOrderId = null;
-
-// Local state
 let ingredientsData = {};
 let currentEditingItemId = null;
 ```
 
-3. **Event-driven Updates**
+**Event-driven Updates**
 - Event listeners su input/select
 - Async fetch per dati backend
 - DOM manipulation per UI updates
@@ -188,7 +186,6 @@ let currentEditingItemId = null;
 - FastAPI inietta dependencies
 - DatabaseManager astrae connection details
 
-
 ## Best Practices Implementate
 
 ### 1. Error Handling
@@ -196,7 +193,7 @@ let currentEditingItemId = null;
 try:
     result = conn.execute(query)
 except sqlite3.Error as e:
-    raise HTTPException(500, f"Database error: {str(e)}")
+    raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 ```
 
 ### 2. Type Safety
@@ -213,9 +210,9 @@ with DatabaseManager.get_connection() as conn:
 
 ### 4. Validation
 ```python
-class PizzaCreate(BaseModel):
+class IngredienteCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
-    prezzo: float = Field(ge=0, le=100)
+    costo_unitario: float = Field(ge=0)
 ```
 
 ---
@@ -224,24 +221,24 @@ class PizzaCreate(BaseModel):
 
 ### Ingrediente (DataClass)
 - **Purpose**: Rappresenta ingrediente singolo
-- **Fields**: id, nome, tipo, costo_unitario, unita_riferimento
-- **Methods**: from_db(), get_all(), create()
+- **Fields**: id, nome, tipo, costo_unitario, unita_riferimento, quantita_riferimento, attiva
+- **Methods**: from_db(), get_all(), create(), to_dict()
 
-### Pizza (DataClass)
-- **Purpose**: Rappresenta pizza del menu
-- **Fields**: id, nome, prezzo, ingredienti_ids
-- **Methods**: from_db(), get_all(), create()
+### MenuItem (DataClass)
+- **Purpose**: Rappresenta voce di menu con ingredienti
+- **Fields**: id, nome, prezzo, categoria, ingredienti
+- **Methods**: from_db(), get_all(), create(), to_dict()
 
 ### Ordine (Database-driven)
 - **Purpose**: Rappresenta ordine cliente
 - **Storage**: Database SQLite
-- **Relations**: ordine_dettagli → ingredienti
+- **Relations**: ordine_dettagli → menu_items
 
 Note di Sviluppo
 
-- **Database**: SQLite con schema versionato
-- **Frontend**: Progressive Enhancement approach
-- **API**: RESTful con OpenAPI documentation
-- **Testing**: Manual + automated test suite
-- **Deployment**: Single server deployment
+- **Database**: SQLite con schema gestito in `core/database.py`
+- **Frontend**: Jinja2 templates e JavaScript vanilla
+- **API**: RESTful con FastAPI
+- **Testing**: pytest e test suite in `tests/` e `tests_archive/`
+- **Deployment**: Single process FastAPI app
 

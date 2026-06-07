@@ -2,76 +2,137 @@
 # IMPORT PER TIPI E VALIDAZIONE
 # =========================
 
-from typing import Optional          # Serve per indicare campi opzionali (possono essere None)
-from pydantic import BaseModel, Field  # BaseModel: modello dati, Field: vincoli e metadati
+from enum import Enum
+from typing import Optional, List
+from pydantic import BaseModel, Field
 
 
 # =========================
-# SCHEMA: CREAZIONE PIZZA
+# ENUMERAZIONI DI VALIDAZIONE
 # =========================
 
-class PizzaCreate(BaseModel):
-    """
-    Modello usato quando si CREA una nuova pizza (POST).
+class TipoIngrediente(str, Enum):
+    base = 'base'
+    salsa = 'salsa'
+    formaggio = 'formaggio'
+    carne = 'carne'
+    verdura = 'verdura'
+    premade = 'premade'
+    altro = 'altro'
 
-    Tutti i campi sono obbligatori perché stiamo creando
-    una nuova entità completa.
-    """
 
-    # nome:
-    # - stringa
-    # - deve avere almeno 1 carattere
+class UnitaRiferimento(str, Enum):
+    g = 'g'
+    ml = 'ml'
+    pz = 'pz'
+    kg = 'kg'
+    l = 'l'
+
+
+class CategoriaMenuItem(str, Enum):
+    antipasti = 'Antipasti'
+    pizza = 'Pizza'
+    bevande = 'Bevande'
+    dolci = 'Dolci'
+    varie = 'Varie'
+
+
+# =========================
+# SCHEMI INGREDIENTI
+# =========================
+
+class IngredienteCreate(BaseModel):
+    """
+    Modello per la creazione di un ingrediente.
+    """
     nome: str = Field(min_length=1)
+    tipo: TipoIngrediente = TipoIngrediente.altro
+    costo_unitario: float = Field(ge=0)
+    unita_riferimento: UnitaRiferimento = UnitaRiferimento.pz
+    quantita_riferimento: float = Field(default=1.0, gt=0)
 
-    # prezzo:
-    # - numero float
-    # - deve essere >= 0
-    prezzo: float = Field(ge=0)
 
-
-# =========================
-# SCHEMA: AGGIORNAMENTO PIZZA
-# =========================
-
-class PizzaUpdate(BaseModel):
+class IngredienteUpdate(BaseModel):
     """
-    Modello usato quando si AGGIORNA una pizza (PATCH).
-
-    Tutti i campi sono opzionali:
-    l’utente può inviare solo quelli che vuole modificare.
+    Modello per aggiornare un ingrediente.
     """
-
-    # nome:
-    # - opzionale
-    # - se presente, deve avere almeno 1 carattere
     nome: Optional[str] = Field(default=None, min_length=1)
-
-    # prezzo:
-    # - opzionale
-    # - se presente, deve essere >= 0
-    prezzo: Optional[float] = Field(default=None, ge=0)
-
-    # attiva:
-    # - opzionale
-    # - booleano (True/False)
-    # - usato per attivare/disattivare una pizza senza eliminarla
+    tipo: Optional[TipoIngrediente] = None
+    costo_unitario: Optional[float] = Field(default=None, ge=0)
+    unita_riferimento: Optional[UnitaRiferimento] = None
+    quantita_riferimento: Optional[float] = Field(default=None, gt=0)
+    attiva: Optional[bool] = None
+    """
+    Modello per aggiornare un ingrediente.
+    """
+    nome: Optional[str] = Field(default=None, min_length=1)
+    tipo: Optional[str] = None
+    costo_unitario: Optional[float] = Field(default=None, ge=0)
+    unita_riferimento: Optional[str] = None
+    quantita_riferimento: Optional[float] = Field(default=None, gt=0)
     attiva: Optional[bool] = None
 
 
-# =========================
-# SCHEMA: OUTPUT PIZZA
-# =========================
-
-class PizzaOut(BaseModel):
+class IngredienteOut(BaseModel):
     """
-    Modello usato per le RISPOSTE (response_model).
-
-    Serve a:
-    - documentare l’API (Swagger)
-    - garantire che l’output abbia sempre questa forma
+    Modello di output per un ingrediente.
     """
+    id: int
+    nome: str
+    tipo: str
+    costo_unitario: float
+    unita_riferimento: str
+    quantita_riferimento: float
+    attiva: bool = True
 
-    id: int        # id univoco della pizza (dal database)
-    nome: str      # nome della pizza
-    prezzo: float  # prezzo corrente
-    attiva: bool   # stato (True=attiva, False=disattiva)
+
+# =========================
+# SCHEMI MENU
+# =========================
+
+class MenuItemIngredientCreate(BaseModel):
+    ingrediente_id: int
+    quantita: float = Field(gt=0)
+
+
+class MenuItemIngredientReference(BaseModel):
+    nome: str
+    costo_unitario: float
+    quantita_riferimento: float
+    unita_riferimento: str
+
+
+class MenuItemIngredientOut(BaseModel):
+    nome: str
+    quantita: float
+    unita_riferimento: str
+    costo_unitario: float
+    quantita_riferimento: float
+    ingrediente: MenuItemIngredientReference
+
+
+class MenuItemCreate(BaseModel):
+    nome: str = Field(min_length=1)
+    prezzo: float = Field(ge=0)
+    categoria: CategoriaMenuItem
+    ingredienti: Optional[List[MenuItemIngredientCreate]] = Field(default_factory=list)
+
+
+class MenuItemUpdate(BaseModel):
+    nome: Optional[str] = Field(default=None, min_length=1)
+    prezzo: Optional[float] = Field(default=None, ge=0)
+    categoria: Optional[CategoriaMenuItem] = None
+    ingredienti: Optional[List[MenuItemIngredientCreate]] = None
+    nome: Optional[str] = Field(default=None, min_length=1)
+    prezzo: Optional[float] = Field(default=None, ge=0)
+    categoria: Optional[str] = Field(default=None, min_length=1)
+    ingredienti: Optional[List[MenuItemIngredientCreate]] = None
+
+
+class MenuItemOut(BaseModel):
+    id: int
+    nome: str
+    prezzo: float
+    categoria: str
+    ingredienti: List[MenuItemIngredientOut] = Field(default_factory=list)
+    costo_ingredienti: float

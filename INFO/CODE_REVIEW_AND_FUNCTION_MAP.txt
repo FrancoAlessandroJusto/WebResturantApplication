@@ -1,7 +1,4 @@
 # CODE REVIEW E MAPPA FUNZIONI - NAP2.0 PIZZERIA MANAGEMENT SYSTEM
-# Generato il: 2026-03-14
-# Revisione completa del codebase e mappatura delle interazioni
-
 ========================================
 INDICE DELLA DOCUMENTAZIONE
 ========================================

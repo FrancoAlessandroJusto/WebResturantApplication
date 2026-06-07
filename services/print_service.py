@@ -3,11 +3,12 @@ Servizio di stampa per ordini - Architettura modulare per Bluetooth e statistich
 """
 
 import json
-import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+
+from core.database import get_conn
 
 class PrinterStatus(Enum):
     """Stati della stampante"""
@@ -194,7 +195,7 @@ class PrintService:
         Salva dati ordine per statistiche future
         """
         try:
-            conn = sqlite3.connect('pizzeria.db')
+            conn = get_conn()
             cursor = conn.cursor()
             
             # Crea tabella statistiche se non esiste
@@ -247,7 +248,7 @@ class PrintService:
         Ottiene statistiche giornaliere
         """
         try:
-            conn = sqlite3.connect('pizzeria.db')
+            conn = get_conn()
             cursor = conn.cursor()
             
             if date:
