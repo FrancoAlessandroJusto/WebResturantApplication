@@ -14,23 +14,6 @@ Breve sistema per gestire il menù, gli ingredienti e gli ordini in una pizzeria
 Questa repository contiene una piccola applicazione FastAPI con interfacce HTML (Jinja2)
 per Management, Taking Orders e una dashboard Analytics di base.
 
-
-## Quick Start (locale)
-
-Prerequisiti: Python 3.10+ (consigliato) e pip.
-Avvia l'app in sviluppo:
-
-```bash
-python -m uvicorn main:app --reload --port 8000
-```
-Pagine principali:
-- Management UI: http://127.0.0.1:8000/mgmt/ui
-- Orders UI: http://127.0.0.1:8000/orders/ui
-- Analytics UI: http://127.0.0.1:8000/analytics/ui
-- API docs (Swagger): http://127.0.0.1:8000/docs
-
----
-
 ## Esempi API (curl)
 
 Lista ingredienti:
