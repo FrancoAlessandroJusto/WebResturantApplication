@@ -201,7 +201,7 @@ Questa sezione descrive a colpo d'occhio cosa contiene ogni cartella principale 
 
 ---
 
-## 📚 Tecnologie Utilizzate
+##  Tecnologie Utilizzate
 
 | Componente | Tecnologia |
 |------------|------------|
@@ -217,7 +217,7 @@ Questa sezione descrive a colpo d'occhio cosa contiene ogni cartella principale 
 
 ---
 
-## 💡 Note di Sviluppo
+##  Note di Sviluppo
 
 - **Database**: SQLite con schema gestito in `core/database.py`
 - **Frontend**: Jinja2 templates e JavaScript vanilla (zero framework)
